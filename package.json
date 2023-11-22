@@ -1,0 +1,27 @@
+{
+    "name": "b-team",
+    "description": "USDA NIFA B-Team Storymapping in R",
+    "version": "1.0.0",
+    "scripts": {
+        "lint": "fluid-lint-all",
+        "build": "node src/js/reknit.js"
+    },
+    "dependencies": {},
+    "devDependencies": {
+        "infusion": "4.6.0",
+        "json5": "2.2.3",
+        "linkedom": "0.14.26",
+        "fs-extra": "11.1.1",
+        "eslint": "8.41.0",
+        "eslint-config-fluid": "2.1.1",
+        "fluid-lint-all": "1.2.9"
+    },
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/usda-nifa-b-team/b-team"
+    },
+    "engines": {
+        "node": ">=14.0.0"
+    },
+    "license": "BSD-3-Clause"
+}

@@ -1,0 +1,12 @@
+{
+    reknitJobs: [
+    ],
+    transforms: [
+    ],
+    copyJobs: [ {
+        source: "%maxwell/tiles/",
+        target: "%maxwell/docs/tiles/"
+    }]
+}
+
+

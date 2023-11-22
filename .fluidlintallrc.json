@@ -1,0 +1,37 @@
+{
+    "sources": {
+        "md": ["./*.md"],
+        "css": ["src/css/**/*.css"],
+        "js": ["src/js/**/*.js"],
+        "json": ["./*.json", "src/**/*.json"]
+    },
+    "eslint": {
+        "js": {
+            "excludes": ["./src/js/client/plotly-2.1.1.js", "src/js/client/htmlwidgets.js", "src/js/client/htmlwidgets-plotly.js"]
+        },
+        "json": {
+        }
+    },
+    "markdownlint": {
+        "options": {
+            "config": {
+                "single-h1": false,
+                "no-bare-urls": false
+            }
+        }
+    },
+    "lintspaces": {
+        "newlines": {
+            "excludes": ["*"]
+        }
+    },
+    "stylelint": {
+        "options": {
+            "config": {
+                "rules": {
+                    "order/properties-alphabetical-order": false
+                }
+            }
+        }
+    }
+}
