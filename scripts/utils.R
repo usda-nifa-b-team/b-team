@@ -1,6 +1,7 @@
 library(googledrive)
 library(data.table)
 library(stringr)
+library(sf)
 
 timedRead <- function (toread) {
   start <- Sys.time()
@@ -24,6 +25,16 @@ timedWrite <- function (x, towrite) {
   write.csv(x, towrite, na = "", row.names = FALSE)
   end <- Sys.time()
   cat("Written ", nrow(x), " rows to ", towrite, " in ", (end - start), "s")
+}
+
+lat_lon <- function (data) {
+  return(st_transform(data, "+proj=longlat +datum=WGS84"))
+}
+
+mx_read <- function (filename) {
+  st_data <- st_read(filename, quiet=TRUE);
+  dropped <- st_zm(st_data, drop = T, what = "ZM")
+  return(lat_lon(dropped));
 }
 
 downloadGdrive <- function (id, file_path) {
