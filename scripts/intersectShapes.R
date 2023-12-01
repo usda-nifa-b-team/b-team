@@ -45,5 +45,7 @@ forestNames <- unlist(dimnames(forest.table))
 
 for (row in 1:length(forestNames)) {
   name <- forestNames[row]
-  tabOneForest(name)
+  if (name != "") {
+      tabOneForest(name)
+  }
 }

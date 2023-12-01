@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+
+<meta name="author" content="Antranig Basman" />
+
+
+<title>Pollinator Report - Osmia in Deschutes National Forest</title>
+
+<script src="Osmia-Deschutes_files/header-attrs-2.14/header-attrs.js"></script>
+<script src="Osmia-Deschutes_files/jquery-3.6.0/jquery-3.6.0.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="Osmia-Deschutes_files/bootstrap-3.3.5/css/bootstrap.min.css" rel="stylesheet" />
+<script src="Osmia-Deschutes_files/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+<script src="Osmia-Deschutes_files/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="Osmia-Deschutes_files/bootstrap-3.3.5/shim/respond.min.js"></script>
+<style>h1 {font-size: 34px;}
+       h1.title {font-size: 38px;}
+       h2 {font-size: 30px;}
+       h3 {font-size: 24px;}
+       h4 {font-size: 18px;}
+       h5 {font-size: 16px;}
+       h6 {font-size: 12px;}
+       code {color: inherit; background-color: rgba(0, 0, 0, 0.04);}
+       pre:not([class]) { background-color: white }</style>
+<script src="Osmia-Deschutes_files/navigation-1.1/tabsets.js"></script>
+<link href="Osmia-Deschutes_files/highlightjs-9.12.0/default.css" rel="stylesheet" />
+<script src="Osmia-Deschutes_files/highlightjs-9.12.0/highlight.js"></script>
+<script src="Osmia-Deschutes_files/htmlwidgets-1.5.4/htmlwidgets.js"></script>
+<script src="Osmia-Deschutes_files/plotly-binding-4.10.1/plotly.js"></script>
+<script src="Osmia-Deschutes_files/typedarray-0.1/typedarray.min.js"></script>
+<link href="Osmia-Deschutes_files/crosstalk-1.2.0/css/crosstalk.min.css" rel="stylesheet" />
+<script src="Osmia-Deschutes_files/crosstalk-1.2.0/js/crosstalk.min.js"></script>
+<link href="Osmia-Deschutes_files/plotly-htmlwidgets-css-2.11.1/plotly-htmlwidgets.css" rel="stylesheet" />
+<script src="Osmia-Deschutes_files/plotly-main-2.11.1/plotly-latest.min.js"></script>
+
+<style type="text/css">
+  code{white-space: pre-wrap;}
+  span.smallcaps{font-variant: small-caps;}
+  span.underline{text-decoration: underline;}
+  div.column{display: inline-block; vertical-align: top; width: 50%;}
+  div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+  ul.task-list{list-style: none;}
+    </style>
+
+<style type="text/css">code{white-space: pre;}</style>
+<script type="text/javascript">
+if (window.hljs) {
+  hljs.configure({languages: []});
+  hljs.initHighlightingOnLoad();
+  if (document.readyState && document.readyState === "complete") {
+    window.setTimeout(function() { hljs.initHighlighting(); }, 0);
+  }
+}
+</script>
+
+
+
+
+
+
+
+
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+img {
+  max-width:100%;
+}
+.tabbed-pane {
+  padding-top: 12px;
+}
+.html-widget {
+  margin-bottom: 20px;
+}
+button.code-folding-btn:focus {
+  outline: none;
+}
+summary {
+  display: list-item;
+}
+details > summary > p:only-child {
+  display: inline;
+}
+pre code {
+  padding: 0;
+}
+</style>
+
+
+
+<!-- tabsets -->
+
+<style type="text/css">
+.tabset-dropdown > .nav-tabs {
+  display: inline-table;
+  max-height: 500px;
+  min-height: 44px;
+  overflow-y: auto;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.tabset-dropdown > .nav-tabs > li.active:before {
+  content: "";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li.active:before {
+  content: "&#xe258;";
+  border: none;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open:before {
+  content: "";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs > li.active {
+  display: block;
+}
+
+.tabset-dropdown > .nav-tabs > li > a,
+.tabset-dropdown > .nav-tabs > li > a:focus,
+.tabset-dropdown > .nav-tabs > li > a:hover {
+  border: none;
+  display: inline-block;
+  border-radius: 4px;
+  background-color: transparent;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li {
+  display: block;
+  float: none;
+}
+
+.tabset-dropdown > .nav-tabs > li {
+  display: none;
+}
+</style>
+
+<!-- code folding -->
+
+
+
+
+</head>
+
+<body>
+
+
+<div class="container-fluid main-container">
+
+
+
+
+<div id="header">
+
+
+
+<h1 class="title toc-ignore">Pollinator Report - Osmia in Deschutes
+National Forest</h1>
+<h4 class="author">Antranig Basman</h4>
+<h4 class="date">December 1st, 2023</h4>
+
+</div>
+
+
+<div id="map" class="section level2">
+<h2>Map</h2>
+<div id="htmlwidget-1ea118005aed2b632079" style="width:672px;height:480px;" class="plotly html-widget"></div>
+<script type="application/json" data-for="htmlwidget-1ea118005aed2b632079">{"x":{"visdat":{"92805adb72b6":["function () ","plotlyVisDat"]},"cur_data":"92805adb72b6","attrs":{"92805adb72b6":{"alpha_stroke":1,"sizes":[10,100],"spans":[1,20],"type":"choroplethmapbox","geojson":{"type":"FeatureCollection","features":[{"type":"Feature","properties":{"cell_id":1,"obs_count":13},"geometry":{"type":"Polygon","coordinates":[[[-121.973,43.502],[-121.9464,43.502],[-121.9464,43.5211896],[-121.973,43.5211896],[-121.973,43.502]]]}},{"type":"Feature","properties":{"cell_id":480,"obs_count":10},"geometry":{"type":"Polygon","coordinates":[[[-121.4676,43.9433607],[-121.441,43.9433607],[-121.441,43.9625503],[-121.4676,43.9625503],[-121.4676,43.9433607]]]}},{"type":"Feature","properties":{"cell_id":549,"obs_count":1},"geometry":{"type":"Polygon","coordinates":[[[-121.7602,44.0201191],[-121.7336,44.0201191],[-121.7336,44.0393087],[-121.7602,44.0393087],[-121.7602,44.0201191]]]}},{"type":"Feature","properties":{"cell_id":614,"obs_count":1},"geometry":{"type":"Polygon","coordinates":[[[-121.6272,44.0776879],[-121.6006,44.0776879],[-121.6006,44.0968774],[-121.6272,44.0968774],[-121.6272,44.0776879]]]}},{"type":"Feature","properties":{"cell_id":751,"obs_count":7},"geometry":{"type":"Polygon","coordinates":[[[-121.707,44.212015],[-121.6804,44.212015],[-121.6804,44.2312046],[-121.707,44.2312046],[-121.707,44.212015]]]}},{"type":"Feature","properties":{"cell_id":771,"obs_count":1},"geometry":{"type":"Polygon","coordinates":[[[-121.707,44.2312046],[-121.6804,44.2312046],[-121.6804,44.2503942],[-121.707,44.2503942],[-121.707,44.2312046]]]}},{"type":"Feature","properties":{"cell_id":791,"obs_count":3},"geometry":{"type":"Polygon","coordinates":[[[-121.707,44.2503942],[-121.6804,44.2503942],[-121.6804,44.2695838],[-121.707,44.2695838],[-121.707,44.2503942]]]}},{"type":"Feature","properties":{"cell_id":811,"obs_count":2},"geometry":{"type":"Polygon","coordinates":[[[-121.707,44.2695838],[-121.6804,44.2695838],[-121.6804,44.2887734],[-121.707,44.2887734],[-121.707,44.2695838]]]}},{"type":"Feature","properties":{"cell_id":829,"obs_count":1},"geometry":{"type":"Polygon","coordinates":[[[-121.7602,44.2887734],[-121.7336,44.2887734],[-121.7336,44.307963],[-121.7602,44.307963],[-121.7602,44.2887734]]]}},{"type":"Feature","properties":{"cell_id":830,"obs_count":1},"geometry":{"type":"Polygon","coordinates":[[[-121.7336,44.2887734],[-121.707,44.2887734],[-121.707,44.307963],[-121.7336,44.307963],[-121.7336,44.2887734]]]}},{"type":"Feature","properties":{"cell_id":832,"obs_count":11},"geometry":{"type":"Polygon","coordinates":[[[-121.6804,44.2887734],[-121.6538,44.2887734],[-121.6538,44.307963],[-121.6804,44.307963],[-121.6804,44.2887734]]]}},{"type":"Feature","properties":{"cell_id":850,"obs_count":13},"geometry":{"type":"Polygon","coordinates":[[[-121.7336,44.307963],[-121.707,44.307963],[-121.707,44.3271526],[-121.7336,44.3271526],[-121.7336,44.307963]]]}},{"type":"Feature","properties":{"cell_id":854,"obs_count":4},"geometry":{"type":"Polygon","coordinates":[[[-121.6272,44.307963],[-121.6006,44.307963],[-121.6006,44.3271526],[-121.6272,44.3271526],[-121.6272,44.307963]]]}},{"type":"Feature","properties":{"cell_id":855,"obs_count":4},"geometry":{"type":"Polygon","coordinates":[[[-121.6006,44.307963],[-121.574,44.307963],[-121.574,44.3271526],[-121.6006,44.3271526],[-121.6006,44.307963]]]}},{"type":"Feature","properties":{"cell_id":955,"obs_count":10},"geometry":{"type":"Polygon","coordinates":[[[-121.6006,44.403911],[-121.574,44.403911],[-121.574,44.4231006],[-121.6006,44.4231006],[-121.6006,44.403911]]]}},{"type":"Feature","properties":{"cell_id":1053,"obs_count":2},"geometry":{"type":"Polygon","coordinates":[[[-121.6538,44.4998589],[-121.6272,44.4998589],[-121.6272,44.5190485],[-121.6538,44.5190485],[-121.6538,44.4998589]]]}},{"type":"Feature","properties":{"cell_id":1054,"obs_count":1},"geometry":{"type":"Polygon","coordinates":[[[-121.6272,44.4998589],[-121.6006,44.4998589],[-121.6006,44.5190485],[-121.6272,44.5190485],[-121.6272,44.4998589]]]}},{"type":"Feature","properties":{"cell_id":1056,"obs_count":3},"geometry":{"type":"Polygon","coordinates":[[[-121.574,44.4998589],[-121.5474,44.4998589],[-121.5474,44.5190485],[-121.574,44.5190485],[-121.574,44.4998589]]]}},{"type":"Feature","properties":{"cell_id":1074,"obs_count":1},"geometry":{"type":"Polygon","coordinates":[[[-121.6272,44.5190485],[-121.6006,44.5190485],[-121.6006,44.5382381],[-121.6272,44.5382381],[-121.6272,44.5190485]]]}},{"type":"Feature","properties":{"cell_id":1075,"obs_count":3},"geometry":{"type":"Polygon","coordinates":[[[-121.6006,44.5190485],[-121.574,44.5190485],[-121.574,44.5382381],[-121.6006,44.5382381],[-121.6006,44.5190485]]]}},{"type":"Feature","properties":{"cell_id":1094,"obs_count":8},"geometry":{"type":"Polygon","coordinates":[[[-121.6272,44.5382381],[-121.6006,44.5382381],[-121.6006,44.5574277],[-121.6272,44.5574277],[-121.6272,44.5382381]]]}},{"type":"Feature","properties":{"cell_id":1112,"obs_count":9},"geometry":{"type":"Polygon","coordinates":[[[-121.6804,44.5574277],[-121.6538,44.5574277],[-121.6538,44.5766173],[-121.6804,44.5766173],[-121.6804,44.5574277]]]}},{"type":"Feature","properties":{"cell_id":1113,"obs_count":12},"geometry":{"type":"Polygon","coordinates":[[[-121.6538,44.5574277],[-121.6272,44.5574277],[-121.6272,44.5766173],[-121.6538,44.5766173],[-121.6538,44.5574277]]]}}]},"locations":[1,480,549,614,751,771,791,811,829,830,832,850,854,855,955,1053,1054,1056,1074,1075,1094,1112,1113],"z":[13,10,1,1,7,1,3,2,1,1,11,13,4,4,10,2,1,3,1,3,8,9,12],"zmin":0,"zmax":13,"colorscale":"Viridis","featureidkey":"properties.cell_id","marker":{"line":{"width":1},"opacity":0.5},"inherit":true}},"layout":{"margin":{"b":40,"l":60,"t":25,"r":10},"mapbox":{"style":"carto-positron","center":{"lon":-121.707,"lat":44.0355},"zoom":6},"scene":{"zaxis":{"title":[]}},"hovermode":"closest","showlegend":false,"legend":{"yanchor":"top","y":0.5}},"source":"A","config":{"modeBarButtonsToAdd":["hoverclosest","hovercompare"],"showSendToCloud":false},"data":[{"colorbar":{"title":"","ticklen":2,"len":0.5,"lenmode":"fraction","y":1,"yanchor":"top"},"colorscale":"Viridis","showscale":true,"type":"choroplethmapbox","geojson":{"type":"FeatureCollection","features":{"type":["Feature","Feature","Feature","Feature","Feature","Feature","Feature","Feature","Feature","Feature","Feature","Feature","Feature","Feature","Feature","Feature","Feature","Feature","Feature","Feature","Feature","Feature","Feature"],"properties":{"cell_id":[1,480,549,614,751,771,791,811,829,830,832,850,854,855,955,1053,1054,1056,1074,1075,1094,1112,1113],"obs_count":[13,10,1,1,7,1,3,2,1,1,11,13,4,4,10,2,1,3,1,3,8,9,12]},"geometry":{"type":["Polygon","Polygon","Polygon","Polygon","Polygon","Polygon","Polygon","Polygon","Polygon","Polygon","Polygon","Polygon","Polygon","Polygon","Polygon","Polygon","Polygon","Polygon","Polygon","Polygon","Polygon","Polygon","Polygon"],"coordinates":[[[[-121.973,43.502],[-121.9464,43.502],[-121.9464,43.5211896],[-121.973,43.5211896],[-121.973,43.502]]],[[[-121.4676,43.9433607],[-121.441,43.9433607],[-121.441,43.9625503],[-121.4676,43.9625503],[-121.4676,43.9433607]]],[[[-121.7602,44.0201191],[-121.7336,44.0201191],[-121.7336,44.0393087],[-121.7602,44.0393087],[-121.7602,44.0201191]]],[[[-121.6272,44.0776879],[-121.6006,44.0776879],[-121.6006,44.0968774],[-121.6272,44.0968774],[-121.6272,44.0776879]]],[[[-121.707,44.212015],[-121.6804,44.212015],[-121.6804,44.2312046],[-121.707,44.2312046],[-121.707,44.212015]]],[[[-121.707,44.2312046],[-121.6804,44.2312046],[-121.6804,44.2503942],[-121.707,44.2503942],[-121.707,44.2312046]]],[[[-121.707,44.2503942],[-121.6804,44.2503942],[-121.6804,44.2695838],[-121.707,44.2695838],[-121.707,44.2503942]]],[[[-121.707,44.2695838],[-121.6804,44.2695838],[-121.6804,44.2887734],[-121.707,44.2887734],[-121.707,44.2695838]]],[[[-121.7602,44.2887734],[-121.7336,44.2887734],[-121.7336,44.307963],[-121.7602,44.307963],[-121.7602,44.2887734]]],[[[-121.7336,44.2887734],[-121.707,44.2887734],[-121.707,44.307963],[-121.7336,44.307963],[-121.7336,44.2887734]]],[[[-121.6804,44.2887734],[-121.6538,44.2887734],[-121.6538,44.307963],[-121.6804,44.307963],[-121.6804,44.2887734]]],[[[-121.7336,44.307963],[-121.707,44.307963],[-121.707,44.3271526],[-121.7336,44.3271526],[-121.7336,44.307963]]],[[[-121.6272,44.307963],[-121.6006,44.307963],[-121.6006,44.3271526],[-121.6272,44.3271526],[-121.6272,44.307963]]],[[[-121.6006,44.307963],[-121.574,44.307963],[-121.574,44.3271526],[-121.6006,44.3271526],[-121.6006,44.307963]]],[[[-121.6006,44.403911],[-121.574,44.403911],[-121.574,44.4231006],[-121.6006,44.4231006],[-121.6006,44.403911]]],[[[-121.6538,44.4998589],[-121.6272,44.4998589],[-121.6272,44.5190485],[-121.6538,44.5190485],[-121.6538,44.4998589]]],[[[-121.6272,44.4998589],[-121.6006,44.4998589],[-121.6006,44.5190485],[-121.6272,44.5190485],[-121.6272,44.4998589]]],[[[-121.574,44.4998589],[-121.5474,44.4998589],[-121.5474,44.5190485],[-121.574,44.5190485],[-121.574,44.4998589]]],[[[-121.6272,44.5190485],[-121.6006,44.5190485],[-121.6006,44.5382381],[-121.6272,44.5382381],[-121.6272,44.5190485]]],[[[-121.6006,44.5190485],[-121.574,44.5190485],[-121.574,44.5382381],[-121.6006,44.5382381],[-121.6006,44.5190485]]],[[[-121.6272,44.5382381],[-121.6006,44.5382381],[-121.6006,44.5574277],[-121.6272,44.5574277],[-121.6272,44.5382381]]],[[[-121.6804,44.5574277],[-121.6538,44.5574277],[-121.6538,44.5766173],[-121.6804,44.5766173],[-121.6804,44.5574277]]],[[[-121.6538,44.5574277],[-121.6272,44.5574277],[-121.6272,44.5766173],[-121.6538,44.5766173],[-121.6538,44.5574277]]]]}}},"locations":[1,480,549,614,751,771,791,811,829,830,832,850,854,855,955,1053,1054,1056,1074,1075,1094,1112,1113],"z":[13,10,1,1,7,1,3,2,1,1,11,13,4,4,10,2,1,3,1,3,8,9,12],"zmin":0,"zmax":13,"featureidkey":"properties.cell_id","marker":{"line":{"color":"rgba(31,119,180,1)","width":1},"opacity":0.5},"frame":null}],"highlight":{"on":"plotly_click","persistent":false,"dynamic":false,"selectize":false,"opacityDim":0.2,"selected":{"opacity":1},"debounce":0},"shinyEvents":["plotly_hover","plotly_click","plotly_selected","plotly_relayout","plotly_brushed","plotly_brushing","plotly_clickannotation","plotly_doubleclick","plotly_deselect","plotly_afterplot","plotly_sunburstclick"],"base_url":"https://plot.ly"},"evals":[],"jsHooks":[]}</script>
+</div>
+<div id="phenology" class="section level2">
+<h2>Phenology</h2>
+<div id="htmlwidget-e9bb8d911ae740d5b2e8" style="width:672px;height:480px;" class="plotly html-widget"></div>
+<script type="application/json" data-for="htmlwidget-e9bb8d911ae740d5b2e8">{"x":{"visdat":{"928070df492a":["function () ","plotlyVisDat"]},"cur_data":"928070df492a","attrs":{"928070df492a":{"x":[1,2,3,4,5,6,7,8,9,10,11,12],"y":{},"alpha_stroke":1,"sizes":[10,100],"spans":[1,20],"type":"bar"}},"layout":{"margin":{"b":40,"l":60,"t":25,"r":10},"xaxis":{"domain":[0,1],"automargin":true,"tickvals":[1,2,3,4,5,6,7,8,9,10,11,12],"ticktext":["January","February","March","April","May","June","July","August","September","October","November","December"],"title":[]},"yaxis":{"domain":[0,1],"automargin":true,"title":"count"},"hovermode":"closest","showlegend":false},"source":"A","config":{"modeBarButtonsToAdd":["hoverclosest","hovercompare"],"showSendToCloud":false},"data":[{"x":[1,2,3,4,5,6,7,8,9,10,11,12],"y":[0,0,0,0,13,64,42,2,0,0,0,0],"type":"bar","marker":{"color":"rgba(31,119,180,1)","line":{"color":"rgba(31,119,180,1)"}},"error_y":{"color":"rgba(31,119,180,1)"},"error_x":{"color":"rgba(31,119,180,1)"},"xaxis":"x","yaxis":"y","frame":null}],"highlight":{"on":"plotly_click","persistent":false,"dynamic":false,"selectize":false,"opacityDim":0.2,"selected":{"opacity":1},"debounce":0},"shinyEvents":["plotly_hover","plotly_click","plotly_selected","plotly_relayout","plotly_brushed","plotly_brushing","plotly_clickannotation","plotly_doubleclick","plotly_deselect","plotly_afterplot","plotly_sunburstclick"],"base_url":"https://plot.ly"},"evals":[],"jsHooks":[]}</script>
+</div>
+<div id="plants" class="section level2">
+<h2>Plants</h2>
+<div id="htmlwidget-2a295d1131795b74e728" style="width:672px;height:520px;" class="plotly html-widget"></div>
+<script type="application/json" data-for="htmlwidget-2a295d1131795b74e728">{"x":{"visdat":{"928023ef5b80":["function () ","plotlyVisDat"]},"cur_data":"928023ef5b80","attrs":{"928023ef5b80":{"labels":{},"values":{},"alpha_stroke":1,"sizes":[10,100],"spans":[1,20],"type":"pie"}},"layout":{"height":520,"margin":{"b":40,"l":60,"t":25,"r":10},"title":"Proportions of 121 plants visited by Osmia in Deschutes National Forest","xaxis":{"showgrid":false,"zeroline":false,"showticklabels":false},"yaxis":{"showgrid":false,"zeroline":false,"showticklabels":false},"autosize":true,"hovermode":"closest","showlegend":true},"source":"A","config":{"modeBarButtonsToAdd":["hoverclosest","hovercompare"],"showSendToCloud":false},"data":[{"labels":["Acmispon nevadensis","Apocynum androsaemifolium","Arctostaphylos sp.","Balsamorhiza sagittata","Ceanothus velutinus","Cirsium remotifolium","Ericameria bloomeri","Erythranthe guttata","Hosackia crassifolia","Lupinus","Mimulus lewisii","Penstemon","Penstemon procerus","Phacelia hastata","Potentilla","Potentilla gracilis","Prunella vulgaris","Ranunculus","Ribes cereum","Trifolium eriocephalum","Trifolium repens","Vicia"],"values":[11,1,3,18,5,1,1,2,2,4,1,4,17,2,9,3,2,1,1,5,15,13],"type":"pie","marker":{"color":"rgba(31,119,180,1)","line":{"color":"rgba(255,255,255,1)"}},"frame":null}],"highlight":{"on":"plotly_click","persistent":false,"dynamic":false,"selectize":false,"opacityDim":0.2,"selected":{"opacity":1},"debounce":0},"shinyEvents":["plotly_hover","plotly_click","plotly_selected","plotly_relayout","plotly_brushed","plotly_brushing","plotly_clickannotation","plotly_doubleclick","plotly_deselect","plotly_afterplot","plotly_sunburstclick"],"base_url":"https://plot.ly"},"evals":[],"jsHooks":[]}</script>
+</div>
+
+
+
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+function bootstrapStylePandocTables() {
+  $('tr.odd').parent('tbody').parent('table').addClass('table table-condensed');
+}
+$(document).ready(function () {
+  bootstrapStylePandocTables();
+});
+
+
+</script>
+
+<!-- tabsets -->
+
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+
+$(document).ready(function () {
+  $('.tabset-dropdown > .nav-tabs > li').click(function () {
+    $(this).parent().toggleClass('nav-tabs-open');
+  });
+});
+</script>
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>
