@@ -3,6 +3,41 @@ library(data.table)
 library(stringr)
 library(sf)
 
+roundmulti <- function (multi, digits) {
+  multi <- lapply(multi, function (matrix) {
+    matrix <- lapply(matrix, function (coords) {
+      round(coords, digits)
+    })
+  })
+  return (st_multipolygon(multi))
+}
+
+roundpoly <- function (poly, digits) {
+  poly <- lapply(poly, function (matrix) {
+    round(matrix, digits)
+  })
+  return (st_polygon(poly))
+}
+
+round_sf <- function (fc, digits=4, tolerance=0.0001) {
+  # https://gis.stackexchange.com/questions/329110/removing-empty-polygon-from-sf-object-in-r
+  simple  <- fc %>% st_simplify(preserveTopology = TRUE, dTolerance = tolerance) %>% dplyr::filter(!st_is_empty(.))
+  geom <- simple$geometry
+  geom <- lapply(geom, function (one) {
+    if (inherits(one, "MULTIPOLYGON")) {
+      one <- roundmulti(one, digits)
+    } else if (inherits(one, "POLYGON")) {
+      one <- roundpoly(one, digits)
+    } else if (inherits(one, "XY")) {
+      one <- round(one)
+    } else if (!st_is_empty(one)) {
+      stop(paste("I don't know what it is ", class(one)))
+    }
+  })
+  simple$geometry <- st_sfc(geom)
+  simple
+}
+
 timedRead <- function (toread) {
   start <- Sys.time()
   frame <- read.csv(toread)

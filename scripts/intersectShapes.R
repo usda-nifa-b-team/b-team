@@ -9,7 +9,7 @@ sf::sf_use_s2(FALSE)
 forests <- mx_read("drive_data/FS_National_Forests_Dataset")
 monuments <- mx_read("drive_data/BLM_National_Monuments")
 
-plant.poll <- timedFread("tabular_data/plant-pollinators-OBA-assigned.csv")
+plant.poll <- timedFread("tabular_data/plant-pollinators-OBA-assigned-subset.csv")
 
 plant.poll.sf <- st_as_sf(plant.poll, coords = c("decimalLongitude", "decimalLatitude"), crs=4326) # CRS is WGS:1984
 

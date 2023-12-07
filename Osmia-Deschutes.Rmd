@@ -16,7 +16,7 @@ source("scripts/plots.R")
 plots <- plot_phenology("Osmia", "forest", "Deschutes National Forest")
 ```
 
-## Map
+## Gridded Observation Counts
 
 ```{r, echo=FALSE, message=FALSE, warning=FALSE}
 plots$map
