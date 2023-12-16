@@ -1,5 +1,4 @@
 source("scripts/intersectShapes.R")
-source("scripts/modD3_fxns.R")
 
 library(tidyverse)
 library(bipartiteD3)
@@ -30,9 +29,10 @@ steensExample <- filtSubset %>%
 d3ready <- toBipd3(areaSubset = steensExample)
 
 #modded functions from bipartite_D3
-
-bipartiteD3(d3ready,
-             MainFigSize = c(400,1760),
+rm(bipartiteD3)
+library(bipartiteD3)
+netVis <- bipartite_D3(d3ready,
+             MainFigSize = c(2000,1760),
              IndivFigSize = c(400,1550),
              PercPos = c(340,450),
              Pad = 2,
@@ -41,3 +41,16 @@ bipartiteD3(d3ready,
              PrimaryLab = "Bees",
              SecondaryLab = "Plants"
 )
+#save_d3_html(netVis, "steensTest.html")
+
+library(r2d3svg)
+r2d3svg::save_d3_svg(netVis, "visFile.svg")
+
+library(magick)
+library(patchwork)
+library(rsvg)
+
+test <- image_read_svg("visFile.svg")
+
+rsvg::rsvg_pdf("visFile.svg", file = "testSvg.pdf", css = "bipartiteD3Script.css")
+
