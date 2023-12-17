@@ -1,0 +1,15 @@
+---
+title: Pollinator Report - Osmia in Deschutes National Forest
+author: Antranig Basman
+date: December 1st, 2023
+output: 
+  pdf_document
+knit: (function(inputFile, encoding) {
+  rmarkdown::render(inputFile, encoding = encoding, output_dir = "docs", output_options = list(copy_resources = TRUE)) })
+---
+
+
+```{r}
+magick::image_read_pdf("testSvg2.pdf")
+```
+
