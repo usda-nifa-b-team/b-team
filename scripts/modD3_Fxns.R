@@ -70,7 +70,7 @@ BP_JS_Writer <- function (df, filename = "JSBP", colouroption = c("monochrome",
   }
   if (is.null(BoxLabPos)) {
     BoxLabPos <- (c(max(stringr::str_length(df[, 1])), max(stringr::str_length(df[, 
-                                                                                  2]))) * 1.2) + 20
+                                                                                  2]))) * 1.1) + 20
   }
   if (is.null(PercPos)) {
     PercPos <- (BoxLabPos) * 5 + c(5, 20)

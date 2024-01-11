@@ -1,5 +1,5 @@
 source("scripts/intersectShapes.R")
-library(pdftools)
+#library(pdftools)
 library(tidyverse)
 library(bipartiteD3)
 library(r2d3)
@@ -56,13 +56,27 @@ netVis <- bipartite_D3(d3ready,
              PrimaryLab = "Bees",
              SecondaryLab = "Plants"
 )
-#save_d3_html(netVis, "testVis.html")
-source("r2d3svg/R/save_d3_pdf.R")
-source("r2d3svg/R/save_d3_svg.R")
-wid <- 1200
-hgt <- 1760
-save_d3_svg(netVis, "visFile2.svg", width = wid, height = hgt)
-#debugonce(save_d3_svg)
-#need to recode save d3 svg to open with a window 10% bigger than the visualization
+# save_d3_html(netVis, file = "d3.html") option to save as html
 
 rsvg::rsvg_pdf("visFile2.svg", file = "testSvg2.pdf", css = "bipartiteD3Script.css")
+
+#TODO
+#automate the network generation process
+#figure out relationship between network size/num spp, parameters etc.
+#convert percentages to counts?
+#add code to  colour and sort by family/genus
+source("scripts/bipartite_D3_plus_save.r")
+
+bipartite_D3m(d3ready,
+              savePdf = T,
+              file = "test.pdf",
+             MainFigSize = c(1390,1760),
+             IndivFigSize = c(400,1550),
+             PercPos = c(340,450),
+             Pad = 2,
+             PercentageDecimals = 1,
+             SiteNames = steensExample$monument,
+             PrimaryLab = "Bees",
+             SecondaryLab = "Plants"
+)
+
