@@ -98,4 +98,4 @@ if(static == TRUE){
  }
 }
 makeNetVis(data = plantPolNamedsf, isMon = F, isNF=T, 
-                    subsetName = unique(plantPolNamedsf$forest)[2], static = F, fileNm = "outNet2.pdf")
+                    subsetName = unique(plantPolNamedsf$forest)[2], static = T, fileNm = "outNet2.pdf")
