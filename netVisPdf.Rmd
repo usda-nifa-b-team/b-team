@@ -10,6 +10,6 @@ knit: (function(inputFile, encoding) {
 
 
 ```{r}
-magick::image_read_pdf("testSvg2.pdf")
+magick::image_read_pdf("outPutNet.pdf")
 ```
 

@@ -142,7 +142,7 @@ bipartite_D3m<- function(data,
   if(is.null( MainFigSize)){
     MainFigSize<-c(mp[2]*700, mp[1]*700) # Having a reasonable guess at a default overall figure size
   }
-
+  
   BP_JS_Writer(df = df,filename = filename,
                colouroption = colouroption,
                HighlightLab = HighlightLab,
@@ -180,8 +180,8 @@ bipartite_D3m<- function(data,
 ##### adding save function  
 save_d3_svg <- function(d3, file, background = "white", delay = 0.5) {
     tmp_html <- tempfile("save_d3_svg", fileext = ".html")
-    figW = MainFigSize[1]*(MainFigSize[1]*0.1)
-    figH = MainFigSize[2]*(MainFigSize[2]*0.1)
+    figW = MainFigSize[1]+(MainFigSize[1]*0.1)
+    figH = MainFigSize[2]+(MainFigSize[2]*0.1)
     # use synchronous (for now) since it's easier
     b <- chromote::ChromoteSession$new(width = figW, height = figH)
     on.exit(unlink(tmp_html))
@@ -221,7 +221,7 @@ save_d3_svg <- function(d3, file, background = "white", delay = 0.5) {
 save_d3_pdf <- function(d3, file, background = "white", delay = 0.5) {
     tmp_svg <- tempfile("save_d3_svg", fileext = ".svg")
     save_d3_svg(d3, file = tmp_svg, background = background, delay = delay)
-    rsvg::rsvg_pdf(tmp_svg, file = file)
+    rsvg::rsvg_pdf(tmp_svg, file = file, css = "bipartiteD3Script.css")
     invisible(file)
   }  
   
