@@ -1,3 +1,7 @@
+# TODO 
+# make total figure size adapt to individual 
+# figure out way to size figure appropriately
+
 source("scripts/gbifNameParsing.R")
 #library(pdftools)
 library(tidyverse)
