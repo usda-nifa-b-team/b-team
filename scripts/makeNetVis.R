@@ -14,6 +14,7 @@ library(magick)
 library(patchwork)
 library(rsvg)
 
+
 #library(r2d3svg)
 # originally had to install r2d3svg: remotes::install_github("usda-nifa-b-team/r2d3svg), should be unecessary now
 # had to remove htmltools from appdata/local/r/winlibrary to get it to install
