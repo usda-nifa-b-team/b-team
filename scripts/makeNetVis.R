@@ -13,7 +13,7 @@ library(RColorBrewer)
 library(magick)
 library(patchwork)
 library(rsvg)
-
+library(chromote)
 
 #library(r2d3svg)
 # originally had to install r2d3svg: remotes::install_github("usda-nifa-b-team/r2d3svg), should be unecessary now
@@ -30,12 +30,14 @@ toBipd3 <- function(areaSubset, pol = pollinatorINatName, plnt = plantINatName){
   return(d3Dat)
 }
 
-makeNetVis <- function(data, subsetName, isMon = TRUE, isNF = FALSE, static = TRUE, fileNm = NULL){ 
+makeNetVis <- function(data, subsetName = "none", isMon = TRUE, isNF = FALSE,
+                       static = TRUE, fileNm = NULL,
+                       figTitle = "all"){ 
 
 famCols <- tibble(cols=c(brewer.pal(5,'Set1'), "black"), 
                     fams = c('Andrenidae','Apidae','Colletidae',
                              'Halictidae','Megachilidae', "Melittidae"))
-  
+  if(!is.null(subsetName)){
 if(isMon == TRUE){
 df <- data %>% 
     filter(monument %in% subsetName) %>% 
@@ -50,7 +52,13 @@ df <- data %>%
   as_tibble() %>% 
   select(!geometry)
 }
-
+  }
+else{ 
+  df <- data %>% 
+    mutate(place = figTitle) %>% 
+    as_tibble() %>% 
+    select(!geometry)
+  }
 famColoured <- df %>% 
     left_join(famCols, by = c("bee_family" = "fams"))
 order <- famColoured %>% group_by(pollinatorINatName,bee_family,cols) %>% 
@@ -69,7 +77,7 @@ if(static == FALSE){
                 savePdf = F,
                 file = NULL,
                 MainFigSize = c(1100,1600),
-                IndivFigSize = c(400,1200),
+                IndivFigSize = c(400,2000),
                 Pad = 2,
                 PercentageDecimals = 1,
                 colouroption = 'manual',
@@ -89,7 +97,7 @@ if(static == TRUE){
                 savePdf = T,
                 file = fileNm,
                 MainFigSize = c(1100,1600),
-                IndivFigSize = c(400,1200),
+                IndivFigSize = c(400,2000),
                 Pad = 2,
                 PercentageDecimals = 1,
                 colouroption = 'manual',
@@ -104,3 +112,7 @@ if(static == TRUE){
 }
 makeNetVis(data = plantPolNamedsf, isMon = F, isNF=T, 
                     subsetName = unique(plantPolNamedsf$forest)[2], static = T, fileNm = "outNet2.pdf")
+
+test3<- makeNetVis(data = plantPolNamedsf, isMon = F, isNF=T, 
+           subsetName = unique(plantPolNamedsf$forest)[2], static = F)
+

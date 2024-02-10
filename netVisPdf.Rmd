@@ -8,7 +8,7 @@ knit: (function(inputFile, encoding) {
   rmarkdown::render(inputFile, encoding = encoding, output_dir = "docs", output_options = list(copy_resources = TRUE)) })
 ---
 
-
+This is based on running 
 ```{r}
 magick::image_read_pdf("outPutNet.pdf")
 ```

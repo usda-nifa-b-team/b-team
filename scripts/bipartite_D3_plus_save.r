@@ -107,6 +107,12 @@ bipartite_D3m<- function(data,
                        CSS_Output_Supress = FALSE,
                        PRINT=FALSE){
   df<-NULL
+  if(IndivFigSize[2]>600){
+MainFigSize <- c(MainFigSize[1], (IndivFigSize[2]+0.2*IndivFigSize[2])) # make this decay with size
+  } else {
+   MainFigSize[2] <- 700
+  }
+  
 
   if(tibble::is_tibble(data)){
     data<- as.data.frame(data)
