@@ -2,7 +2,7 @@ Documenting the network visualization process - the complete process is accompli
 
   Starts by loading gbifNameParsing.R, which itself loads intersectShapes.R
 
-  This gets the data by monument and national forest, then uses the rgbif package to match bee and plant names to the species names in the data
+  This gets the data including monument and national forest, then uses the rgbif package to match bee and plant names to the species names in the data
 
 It loads required packages, as well as the modified bipartite D3 script: bipartite_D3_plus_save.r
 
@@ -12,9 +12,10 @@ This creates a function - bipartite_D3m, which does several things.
 
   The next section applies the function BP_JS_Writer to the input, using provided arguments as well as defaults in BP_JS_Writer 
     (BP_JS_Writer will be described below, but essentially uses the numbers created above and the input data to write a custom javascript that produces code that r2d3 can turn into a visualization)
-BP_JS_Writer needs some further description. It 
 
-  
+BP_JS_Writer uses the arguments passed to bipartite_d3m to write a javascript bit by bit using text.
+this should be replaced eventually but currently writes the data, the order/colour into the script
+
   It then calls a function called loadvisjs, which loads a complex javascript, named vizjs.js here, which is available online and meant for creating sankey diagrams (should add link to it here)
 
   The function then calls r2d3, which is used to make a d3 visualization, using the custom javascript and visjs as a dependency
@@ -48,7 +49,7 @@ Then, the main function: makeNetVis
   then whether the output is a static network (i.e., a pdf), or an html widget
   it also provides a fileNm option for the pdf, and has an option to set the figure title if this is not a national monument or forest
 
-Inside makenetvis, it sets the colours for the bee families, then subsets the data if the nat. for/mon arguments to subset to are present, including removing the geometry
+Inside makenetvis, it sets the colours for the bee families, then subsets the data if the national for./mon. arguments to subset to are present, including removing the geometry
   it then creates a named colour vector, and an ordered vector of bee names, these are used to arrange bees by family and genus, and colour them by family
   next it creates the data needed for these visualizations (using tobipd3) as described above
 
@@ -60,7 +61,7 @@ Inside makenetvis, it sets the colours for the bee families, then subsets the da
   If a pdf is desired (static = true), the function loads bp_js_writer_4
   it also adds save pdf = T to bipartite_d3m, and uses the provided file name
 
-  
+  right now it doesn't know how to scale with size, but working on it
   
 
   
