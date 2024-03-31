@@ -113,6 +113,6 @@ if(static == TRUE){
 makeNetVis(data = plantPolNamedsf, isMon = F, isNF=T, 
                     subsetName = unique(plantPolNamedsf$forest)[2], static = T, fileNm = "outNet2.pdf")
 
-test3<- makeNetVis(data = plantPolNamedsf, isMon = F, isNF=T, 
-           subsetName = unique(plantPolNamedsf$forest)[2], static = F)
+makeNetVis(data = plantPolNamedsf, isMon = T, isNF=F, 
+           subsetName = unique(plantPolNamedsf$monument)[3], static = F)
 
