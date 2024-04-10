@@ -224,15 +224,15 @@ save_d3_svg <- function(d3, file, background = "white", delay = 0.5) {
   is_windows <- function() .Platform$OS.type == "windows"
   # is_mac <- function() Sys.info()[['sysname']] == 'Darwin'
   # is_linux <- function() Sys.info()[['sysname']] == 'Linux'
-save_d3_pdf <- function(d3, file, background = "white", delay = 0.5) {
+save_d3_png <- function(d3, file, background = "white", delay = 0.5) {
     tmp_svg <- tempfile("save_d3_svg", fileext = ".svg")
     save_d3_svg(d3, file = tmp_svg, background = background, delay = delay)
-    rsvg::rsvg_pdf(tmp_svg, file = file, css = "bipartiteD3Script.css")
+    rsvg_png(tmp_svg, file = file, css = "bipartiteD3Script.css")
     invisible(file)
   }  
   
 if(savePdf == T){
-  save_d3_pdf(d3 = r2d3Out, file = file)
+  save_d3_png(d3 = r2d3Out, file = file)
 }
 else{
   return(r2d3Out)
