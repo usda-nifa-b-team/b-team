@@ -1,5 +1,6 @@
 // edited bipartite script 
-// below are the basics that should be set here instead of in R text script 
+
+// see the section below var data
 
 // eventually add function (beeData, FigureLabel, MainFigSizeX, MainFigSizeY, IndivFigSizeX, IndivFigSizeY, color, sortOrder)  { }
 var data=[["Agapostemon femoratus","Angelica",2], // this will just become var data = beeData ?
@@ -167,15 +168,17 @@ var data=[["Agapostemon femoratus","Angelica",2], // this will just become var d
 ["Sphecodes","Potentilla",1],
 ["Stelis","Arnica",1],
 ["Stelis","Phacelia",1],
-["Stelis","Potentilla",1]]
+["Stelis","Potentilla",1]];
 
-var FigureLabel = "Steens Mountain CMPA"; // update this group to take input // here FigureLabel = FigureLabel
+// this group can be updated to take external input (or for figure size base itself somehow on var data?) but currently is not ready 
+var FigureLabel = "Steens Mountain CMPA"; // here will become FigureLabel = FigureLabel
 var MainFigSizeX = 1100; // here will become = MainFigSizeX
 var MainFigSizeY = 2000; // here will become = MainFigSizeY
 var IndivFigSizeX = 400; // here will become = IndivFigSizeX
 var IndivFigSizeY = 1000; // here will become = IndivFigSizeY
 
-var ColourBy  = 1;// these can stay standardized
+// this group of variables should always be the same 
+var ColourBy  = 1;
 var colouroption = "manual";
 var BarSize = 35;
 var MinWidth = 10;
