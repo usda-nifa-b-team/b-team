@@ -1,12 +1,18 @@
 # Modifying the js to be R independent
 
-# makenetvis was used to produce a standard bipartiteD3Script.js for the steens network
+# to do this, I started by using the normal makenetvis function to produce a standard bipartiteD3Script.js (for the steens network)
 
-# the default script (bipartiteD3Script.js) was renamed steens.js, with a copy to modify called steensEXP.js
+# I then renamed that script from bipartiteD3Script.js to steens.js, and made a copy to modify called steensEXP.js
 
-# Below alters bipd3m() to read a .js and make the d3 widget instead of writing a script then making a d3 widget ----
+# I then created a version of the bipd3m() function - bipartite_D3TestExp
 
-# this tests my modified steensEXP.js - to be R independent ----
+# bipartite_D3TestExp differs from standard bipartite_D3() in that it does not create a javascript, it reads one.
+
+# It reads a .js, and turns it into a d3 widget (this part is not modified, just the .js source)  
+
+#I used this function to verify that steensEXP.js still produced the same network after each of my modifications.
+
+# bipartite_D3TestExp simply uses my modified steensEXP.js to create the d3 widget ----
 
 bipartite_D3TestExp<- function(MainFigSize = c(1100, 3600),
                             IndivFigSize = c(400,2000))
@@ -24,13 +30,13 @@ return(r2d3Out)
 bipartite_D3TestExp()
 
 
-# can compare to original ----
+# this is the same but uses the original .js (steens.js) ----
 bipartite_D3Test<- function(MainFigSize = c(1100,1600),
                             IndivFigSize = c(400,2000))
 {
   LoadVisJS()
   
-  r2d3Out  <- r2d3::r2d3(data = NA, script = paste0("steens",".js"),
+  r2d3Out  <- dr23::r2d3(data = NA, script = paste0("steens",".js"),
                          height= MainFigSize[2], width= MainFigSize[1] ,
                          d3_version = '5',
                          dependencies ="vizjs.js")
@@ -46,6 +52,8 @@ famCols<- tibble(cols=c(brewer.pal(5,'Set1'), "black"),
                  fams = c('Andrenidae','Apidae','Colletidae',
                           'Halictidae','Megachilidae', "Melittidae"))
 
+# below can be ignored, I was using this for other troubleshooting ----
+# basically it pulls everything out of the bp_js_writer function so I didn't have to go 3 levels into debug every time to test how the function worked
 #extracting the data used for some testing below ----
 #debugonce(makeNetVis)
 makeNetVis(data = plantPolNamedsf, isMon = T, isNF=F,
