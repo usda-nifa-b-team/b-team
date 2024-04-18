@@ -72,7 +72,7 @@ names(famNameVec) <- famName$pollinatorINatName
 d3r <- toBipd3(df, plnt = plant_genus) %>% filter(!is.na(plant_genus))
 
 if(static == FALSE){
-  source("scripts/BP_JS_Writer4.R")
+  source("scripts/BP_JS_WriterReactive.R")
   outD3 <- bipartite_D3m(data = d3r,
                 savePdf = F,
                 file = NULL,
@@ -92,7 +92,7 @@ if(static == FALSE){
 }
 
 if(static == TRUE){
-  source("scripts/BP_JS_Writer2.R")
+  source("scripts/BP_JS_WriterStatic.R")
   bipartite_D3m(data = d3r,
                 savePdf = T,
                 file = fileNm,
