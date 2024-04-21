@@ -116,3 +116,5 @@ makeNetVis(data = plantPolNamedsf, isMon = F, isNF=T,
 makeNetVis(data = plantPolNamedsf, isMon = T, isNF=F, 
            subsetName = unique(plantPolNamedsf$monument)[3], static = F)
 
+plantPolNamedsf %>% filter(monument %in% "Steens Mountain CMPA") %>% 
+  toBipd3()

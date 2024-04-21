@@ -13,6 +13,8 @@
 #I used this function to verify that steensEXP.js still produced the same network after each of my modifications.
 
 # bipartite_D3TestExp simply uses my modified steensEXP.js to create the d3 widget ----
+library(tidyverse)
+library(bipartiteD3) # forgot this before which is important
 
 bipartite_D3TestExp<- function(MainFigSize = c(1100, 3600),
                             IndivFigSize = c(400,2000))
