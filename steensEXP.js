@@ -257,7 +257,7 @@ var color = {'Agapostemon femoratus':'#984EA3','Agapostemon texanus':'#984EA3','
 function transValue(ColPos, RowPos){ var tranString = "translate" + "(" + ColPos + "," + RowPos +")"
 return tranString}
 
-var test = transValue(ColPos, RowPos);
+var transformColRow = transValue(ColPos, RowPos);
 
 // function(figHeight, figWidth, translateValu = c(ColPos[i], ",", RowPos[i]))
 var g1 = svg.append("g").attr("transform", test ); //replace the translate with variables - doesn't seem to work
