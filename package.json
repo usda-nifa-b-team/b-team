@@ -6,7 +6,9 @@
         "lint": "fluid-lint-all",
         "build": "node src/js/reknit.js"
     },
-    "dependencies": {},
+    "dependencies": {
+        "d3": "5.9.2"
+    },
     "devDependencies": {
         "infusion": "4.6.0",
         "json5": "2.2.3",

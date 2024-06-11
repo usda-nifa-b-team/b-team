@@ -12,47 +12,38 @@
 
 #I used this function to verify that steensEXP.js still produced the same network after each of my modifications.
 
-# bipartite_D3TestExp simply uses my modified steensEXP.js to create the d3 widget ----
+# bipartite_D3TestExp uses the bipartitePP-r2d3.js to push R-side data through to the new pure JS bipartitePP.js which is also used in the dynamic viz ----
 library(tidyverse)
 library(bipartiteD3) # forgot this before which is important
 
-bipartite_D3TestExp<- function(MainFigSize = c(1100, 3600),
-                            IndivFigSize = c(400,2000))
+bipartite_D3TestExp<- function(data, options, MainFigSize = c(1100, 3600))
 {
-  LoadVisJS()
-  
-  r2d3Out  <- r2d3::r2d3(data = NA, script = "steensEXP.js",
-                         height= MainFigSize[2], width= MainFigSize[1] ,
+
+  r2d3Out  <- r2d3::r2d3(data = data, script = "src/js/client/bipartitePP-r2d3.js",
+                         height= MainFigSize[2], width= MainFigSize[1],
                          d3_version = '5',
-                         dependencies ="vizjs.js")
-  
-return(r2d3Out)
-}
-
-bipartite_D3TestExp()
-
-
-# this is the same but uses the original .js (steens.js) ----
-bipartite_D3Test<- function(MainFigSize = c(1100,1600),
-                            IndivFigSize = c(400,2000))
-{
-  LoadVisJS()
-  
-  r2d3Out  <- dr23::r2d3(data = NA, script = paste0("steens",".js"),
-                         height= MainFigSize[2], width= MainFigSize[1] ,
-                         d3_version = '5',
-                         dependencies ="vizjs.js")
+                         options = options,
+                         dependencies = list("src/js/client/bipartitePP.js", "src/js/client/vizjs.js"))
   
   return(r2d3Out)
 }
 
-bipartite_D3Test()
+beeData <- read_csv("tabular_data/steens_test/steensFreq.csv");
+beeColors <- read_csv("tabular_data/steens_test/steensBeeColors.csv")
+sortedBeeNames <- read_csv("tabular_data/steens_test/steensSortedBeeNames.csv")
+# TODO we don't have one in this case
+sortedPlantNames <- data.frame(Taxon=character())
 
-#here are my current colour by rules 
+options <- list(FigureLabel = "Steens Mountain CMPA",
+                    sortedBeeNames = sortedBeeNames,
+                    sortedPlantNames = sortedPlantNames,
+                    beeColors = beeColors)
 
-famCols<- tibble(cols=c(brewer.pal(5,'Set1'), "black"), 
-                 fams = c('Andrenidae','Apidae','Colletidae',
-                          'Halictidae','Megachilidae', "Melittidae"))
+bipartite_D3TestExp(beeData, options)
+
+
+
+
 
 # below can be ignored, I was using this for other troubleshooting ----
 # basically it pulls everything out of the bp_js_writer function so I didn't have to go 3 levels into debug every time to test how the function worked

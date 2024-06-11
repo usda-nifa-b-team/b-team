@@ -66,6 +66,16 @@ lat_lon <- function (data) {
   return(st_transform(data, "+proj=longlat +datum=WGS84"))
 }
 
+expand_bbox = function(bb, e) {
+	dx = diff(bb[c("xmin", "xmax")])
+	dy = diff(bb[c("ymin", "ymax")])
+	st_bbox(setNames(c(
+	    bb["xmin"] - e * dx,
+		bb["ymin"] - e * dy,
+		bb["xmax"] + e * dx,
+		bb["ymax"] + e * dy), c("xmin", "ymin", "xmax", "ymax")))
+}
+
 mx_read <- function (filename) {
   st_data <- st_read(filename, quiet=TRUE);
   dropped <- st_zm(st_data, drop = T, what = "ZM")
