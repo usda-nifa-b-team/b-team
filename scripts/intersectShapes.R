@@ -10,7 +10,7 @@ forests <- mx_read("drive_data/FS_National_Forests_Dataset")
 monuments <- mx_read("drive_data/BLM_National_Monuments")
 ecol3 <- mx_read("drive_data/us_eco_l3/")
 
-plant.poll <- timedFread("tabular_data/plant-pollinators-OBA-assigned-subset.csv")
+plant.poll <- timedFread("tabular_data/plant-pollinators-OBA-2-assigned-subset.csv")
 
 plant.poll.sf <- st_as_sf(plant.poll, coords = c("decimalLongitude", "decimalLatitude"), crs=4326) # CRS is WGS:1984
 
@@ -20,16 +20,23 @@ ecol3.intersection <- as.integer(st_intersects(plant.poll.sf, ecol3))
 
 addLabels <- function (obs) {
   obs.labels <- obs %>% mutate(
-    monument = if_else(is.na(monuments.intersection), '', monuments$Label[monuments.intersection]),
-    forest = if_else(is.na(forests.intersection), '', forests$FORESTNAME[forests.intersection]),
-    US_L3CODE = if_else(is.na(ecol3.intersection), '', ecol3$US_L3CODE[ecol3.intersection])
+    monument = if_else(is.na(monuments.intersection), NA, monuments$Label[monuments.intersection]),
+    forest = if_else(is.na(forests.intersection), NA, forests$FORESTNAME[forests.intersection]),
+    US_L3CODE = if_else(is.na(ecol3.intersection), NA, ecol3$US_L3CODE[ecol3.intersection])
   )
 }
 
 plant.poll.sf.labels <- addLabels(plant.poll.sf)
 plant.poll.labels <- addLabels(plant.poll)
 
-timedWrite(plant.poll.labels, "tabular_data/plant-pollinators-OBA-assigned-subset-labels.csv")
+withoutEco <- plant.poll.labels[is.na(plant.poll.labels$US_L3CODE), ]
+plant.poll.labels <- plant.poll.labels[!is.na(plant.poll.labels$US_L3CODE), ]
+
+timedWrite(plant.poll.labels, "tabular_data/plant-pollinators-OBA-2-assigned-subset-labels.csv")
+
+cat("Discarded ", nrow(withoutEco), " observations as not assigned to an ecoregion")
+
+timedWrite(withoutEco, "tabular_data/plant-pollinators-OBA-2-region-discarded.csv")
 
 l3regions <- ecol3 %>% st_drop_geometry %>% dplyr::distinct(US_L3CODE, US_L3NAME) %>% mutate_at("US_L3CODE", as.numeric)  %>% arrange(US_L3CODE)
 timedWrite(l3regions, "tabular_data/us-eco-l3-regions.csv")
