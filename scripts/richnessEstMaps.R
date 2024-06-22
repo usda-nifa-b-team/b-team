@@ -1,7 +1,7 @@
 library(tidyverse)
 library(sf)
 
-l4Eco <- read_sf("tiles/or_eco_l4.shp/")
+l4Eco<- mx_read("drive_data/us_eco_l4/")
 
 l4EcoLatLong <- l4Eco %>% st_transform(., crs = 4326)
 
@@ -9,10 +9,10 @@ source("scripts/intersectShapes.R")
 
 library(iNEXT) # package that does spp. richness estimates
 
-testJoin <- l4EcoLatLong %>% st_join(plant.poll.sf.labels) # find which pollinators are in which ecoregion
+l4Joined <- l4EcoLatLong %>% st_join(plant.poll.sf.labels) # find which pollinators are in which ecoregion
 
 # get abundance in each ecoregion and convert to matrix needed for iNEXT
-forEst <- testJoin %>% 
+forEst <- l4Joined %>% 
   dplyr::select(US_L4NAME, pollinatorAssignedINatName) %>% st_drop_geometry() %>% 
   filter(!is.na(pollinatorAssignedINatName)) %>%  
   group_by(US_L4NAME, pollinatorAssignedINatName) %>% 

@@ -8,3 +8,6 @@ downloadGdriveFolder("138x6sdV0jStjI6QG8s9dn-Kg7H5CDIQ8", "drive_data/BLM_Nation
 
 # From location B-Team/External datasets/us_eco_l3/
 downloadGdriveFolder("1skMopE97eUvFu-8jSScGCLDnijrte3dM", "drive_data/us_eco_l3")
+
+# From location B-Team/External datasets/us_eco_l3/
+downloadGdriveFolder("1sBCJozwrh5FBZjp4ceKhff0Vs35esPve", "drive_data/us_eco_l4")
