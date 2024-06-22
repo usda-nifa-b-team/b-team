@@ -1,0 +1,46 @@
+library(tidyverse)
+library(sf)
+
+l4Eco <- read_sf("tiles/or_eco_l4.shp/")
+
+l4EcoLatLong <- l4Eco %>% st_transform(., crs = 4326)
+
+source("scripts/intersectShapes.R")
+
+library(iNEXT) # package that does spp. richness estimates
+
+testJoin <- l4EcoLatLong %>% st_join(plant.poll.sf.labels) # find which pollinators are in which ecoregion
+
+# get abundance in each ecoregion and convert to matrix needed for iNEXT
+forEst <- testJoin %>% 
+  dplyr::select(US_L4NAME, pollinatorAssignedINatName) %>% st_drop_geometry() %>% 
+  filter(!is.na(pollinatorAssignedINatName)) %>%  
+  group_by(US_L4NAME, pollinatorAssignedINatName) %>% 
+  summarise(n = n()) %>% 
+  pivot_wider(names_from = US_L4NAME, values_from = n, values_fill = 0) %>% 
+  column_to_rownames(var = "pollinatorAssignedINatName")
+
+chaoEst <- ChaoRichness(forEst) # create estimates
+
+# get proportion of observed/estimated total
+propObs <- chaoEst %>% rownames_to_column(var = "L4Ecoregion") %>% 
+  mutate(prop = Observed/Estimator)
+
+#adding geometry back in
+sppEstSf <- l4EcoLatLong %>% left_join(propObs, by = c("US_L4NAME" = "L4Ecoregion"))
+
+#making map coloured by proportion
+
+sppEstSf %>% 
+  ggplot(aes(geometry = geometry))+
+  geom_sf(aes(fill = prop))+
+  scale_fill_viridis_c(alpha = 0.7)+
+  labs(fill = "Proportion Observed vs. Estimated Total Richness")
+
+# a test of observed richness only
+sppEstSf %>% 
+  ggplot(aes(geometry = geometry))+
+  geom_sf(aes(fill = Observed))+
+  scale_fill_viridis_c(alpha = 0.8)
+  labs(fill = "Observed Richness")
+
