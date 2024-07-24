@@ -115,6 +115,6 @@ downloadGdriveFolder <- function (id, file_path) {
       })
     }
   } else {
-    cat ("Path ", file_path, " already exists, skipping download")
+    cat ("Path ", file_path, " already exists, skipping download\n")
   }
 }

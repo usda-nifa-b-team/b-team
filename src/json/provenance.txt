@@ -1,0 +1,1 @@
+Taken from https://github.com/plotly/plotly.js/blob/b25194764a2d6abd68120eddeb7c9c38a90f0f29/src/plots/mapbox/constants.js#L29C1-L166C3

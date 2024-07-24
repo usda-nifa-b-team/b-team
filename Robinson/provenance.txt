@@ -1,0 +1,7 @@
+Taken from Google Drive folders https://drive.google.com/drive/folders/1qZLANL43ETY5zqhXPnGeoWj0vYUj1VHO shared by AM on 2024-07-24
+
+"One idea is to use the filtering to generate something that follows our volunteer reports (see attached a report for one of our volunteers from 2019. Here is the R-code that was developed a while back by Sam Robinson that generates this output:
+
+https://drive.google.com/drive/folders/1qZLANL43ETY5zqhXPnGeoWj0vYUj1VHO?usp=share_link
+
+Perhaps this could be a starting point for what the output might look like?"

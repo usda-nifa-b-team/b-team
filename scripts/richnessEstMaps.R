@@ -29,6 +29,8 @@ propObs <- chaoEst %>% rownames_to_column(var = "L4Ecoregion") %>%
 #adding geometry back in
 sppEstSf <- l4EcoLatLong %>% left_join(propObs, by = c("US_L4NAME" = "L4Ecoregion"))
 
+st_write(sppEstSf, "spatial_data/vectors/RichnessEstimate", driver="ESRI Shapefile");
+
 #making map coloured by proportion
 
 sppEstSf %>% 
