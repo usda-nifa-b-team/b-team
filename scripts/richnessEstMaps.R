@@ -1,13 +1,12 @@
 library(tidyverse)
 library(sf)
+library(iNEXT) # package that does spp. richness estimates
+
+source("scripts/intersectShapes.R")
 
 l4Eco<- mx_read("drive_data/us_eco_l4/")
 
 l4EcoLatLong <- l4Eco %>% st_transform(., crs = 4326)
-
-source("scripts/intersectShapes.R")
-
-library(iNEXT) # package that does spp. richness estimates
 
 l4Joined <- l4EcoLatLong %>% st_join(plant.poll.sf.labels) # find which pollinators are in which ecoregion
 
@@ -21,11 +20,12 @@ forEst <- l4Joined %>%
   column_to_rownames(var = "pollinatorAssignedINatName")
 
 chaoEst <- ChaoRichness(forEst) # create estimates
-
+ChaoRichness(forEst)
 # get proportion of observed/estimated total
 propObs <- chaoEst %>% rownames_to_column(var = "L4Ecoregion") %>% 
   mutate(prop = Observed/Estimator)
 
+#ggiNEXT(iNEXT(forEst$`Semiarid Uplands`))
 #adding geometry back in
 sppEstSf <- l4EcoLatLong %>% left_join(propObs, by = c("US_L4NAME" = "L4Ecoregion"))
 

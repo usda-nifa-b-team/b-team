@@ -4,11 +4,10 @@
 #Load packages -------------------------
 library(tidyverse)
 library(sf)
-library(ggsn)
+
 
 #Load and organize data ---------------------------
-setwd("~/Documents/Andony Melathopolous/Volunteer Summary Sheets")
-dat <- read.csv('./Data/volunteer_csv.csv',stringsAsFactors = FALSE,sep=',',strip.white = TRUE,na.strings=c('NA','')) %>% 
+dat <- read.csv("Robinson/Data/volunteer_csv.csv",stringsAsFactors = FALSE,sep=',',strip.white = TRUE,na.strings=c('NA','')) %>% 
   select(day:year,County,Location:Genus,Species,Sex,Caste,associatedTaxa) %>%
   rename_with(tolower) %>% rename('lat'='dec..lat.','lon'='dec..long.','flwGenus'='associatedtaxa') %>% 
   mutate(across(c(genus,species,lat,lon),~str_trim(.))) %>% #For some reason, whitespace isn't being trimmed properly
@@ -25,14 +24,14 @@ dat <- read.csv('./Data/volunteer_csv.csv',stringsAsFactors = FALSE,sep=',',stri
   st_as_sf(coords=c('lon','lat')) %>% st_set_crs(4269) %>% st_transform(3643) #Coordinates
 
 #Shapefiles of Oregon counties
-orCounties <- st_read("./Shapefiles/orcntypoly.shp") %>%
+orCounties <- st_read("Robinson/Shapefiles/orcntypoly.shp") %>%
   select(unitID:altName) %>% st_set_crs(4269) %>% #NAD83
   st_transform(3643) %>%  #Oregon Lambert
   mutate(nRecords=sapply(st_contains(.,dat),length), #Number of bee specimens per county
          nFlwGenera=sapply(st_contains(.,dat),function(x) length(unique(dat$flwGenus[x])))) #Number of flower genera
 
 #Shapefiles of Oregon ecoregions
-orEcoReg <- st_read("./Shapefiles/or_eco_l3.shp") %>% transmute(name=NA_L3NAME) %>% 
+orEcoReg <- st_read("Robinson/Shapefiles/or_eco_l3.shp") %>% transmute(name=NA_L3NAME) %>% 
   st_transform(3643) %>% #Oregon Lambert
   mutate(name=gsub(' and ',' & ',name)) %>% mutate(name=gsub('Cascades Slopes','Cascades\nSlopes',name)) %>% 
   mutate(nRecords=sapply(st_contains(.,dat),length), #Number of bee specimens per ecoregion
@@ -169,4 +168,4 @@ abundTable <- function(d,col1,col2,totals=FALSE){
 #Future function: split long single-column table into multi-column "wide" table
 
 #Save data to Rdata file
-save.image('./Data/cleaned.Rdata') #Cleaned data + helper function
+save.image('Robinson/Data/cleaned.Rdata') #Cleaned data + helper function
