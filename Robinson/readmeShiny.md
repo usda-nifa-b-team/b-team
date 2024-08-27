@@ -16,6 +16,7 @@ The output$report is made by creating a list of options for the parameters (para
 I modified the original rmd to be parameterized instead of using a custom loop - much easier to run in shiny. New name: templateSheetRR.rmd
 I made a couple minor fixes to make the rmd run before that too, things like replacing outdated packages in the mapping software. 
 
+I had to modify makeReports.R and organize.R to get the working directory to work properly
 
 
 
