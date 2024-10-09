@@ -1,0 +1,390 @@
+---
+output:
+  pdf_document:
+    fig_caption: yes
+    keep_tex: false
+params: 
+  collectorName: ""    
+title: "`r params$collectorName` Summary Sheet"
+author: "Oregon Bee Atlas"
+
+
+geometry: margin=2cm
+header-includes:
+- \usepackage{booktabs}
+- \usepackage{longtable}
+- \usepackage{array}
+- \usepackage{multirow}
+- \usepackage{wrapfig}
+- \usepackage{float}
+- \usepackage{colortbl}
+- \usepackage{pdflscape}
+- \usepackage{tabu}
+- \usepackage{threeparttable}
+- \usepackage{threeparttablex}
+- \usepackage[normalem]{ulem}
+- \usepackage{makecell}
+- \usepackage{xcolor}
+---
+
+```{r setup, include=FALSE}
+#OREGON BEE ATLAS PROJECT SUMMARY SHEETS
+#WRITTEN BY SAM ROBINSON, FALL 2020
+library(knitr)
+library(kableExtra)
+library(tidyverse)
+library(ggpubr)
+library(RColorBrewer)
+library(sf)
+library(ggspatial) #library(ggsn) replaced
+library(shadowtext)
+
+#knitr options
+opts_chunk$set(echo = FALSE, eval = TRUE, warning = FALSE, message = FALSE)
+opts_knit$set(eval.after = "fig.cap")
+options(dplyr.summarise.inform=FALSE, warn=-1) #Suppress warnings
+theme_set(theme_classic())
+
+#Load data
+#load("Data/cleaned.Rdata")
+
+#Volunteer data only
+
+volDat <- dat %>% filter(collector %in% params$collectorName) 
+  
+singles <- filter(singles, collector %in% params$collectorName)
+
+#Get top 3 (species richness) collectors
+top3Spp <- dat %>% st_drop_geometry() %>%  group_by(collector) %>%
+  summarize(n=n(),nSpp=length(unique(genSpp))) %>% 
+  arrange(desc(nSpp)) %>% slice(1:3) 
+
+#Get top 3 (number of specimens) collectors
+top3N <- dat %>%  st_drop_geometry() %>% count(collector) %>%
+  arrange(desc(n)) %>% slice(1:3) 
+
+# Linc's ideas for "gold stars"
+# # Gold stars for various categories. 
+# *most specimens - shown in overall output
+# *most species - shown in overall output
+# *only species X - this is addressed by the "singles"
+# *only genus X - this is addressed by the "singles"
+# *most genus X - trickier to do; would have to exclude "singles"
+# *most genera - could put into overall output
+
+```
+
+\section{Volunteer Catches}
+
+`r params$collectorName`  caught `r nrow(volDat)` bees across `r length(unique(volDat$county))` `r ifelse(length(unique(volDat$county))>1,"counties","county")` from  `r format(min(volDat$date),format="%B %d, %Y")` to `r format(max(volDat$date),format="%B %d, %Y")`, representing `r length(unique(volDat$genSpp))` unique species. `r ifelse(nrow(singles)>0,paste0(params$collectorName , "also caught the only _",singles$genSpp[1],"_ in the collection!"),"")`
+
+
+```{r, include= FALSE}
+collString <- params$collectorName
+collString
+```
+
+```{r, out.width="100%", fig.cap = paste0("Bees caught by ", collString, ", broken down by species, genus, and family.")}
+abundPlots(volDat,colSet="Set1")
+```
+
+```{r volMap, warning=FALSE, fig.cap= paste0("Bee catch locations for ", collString,", along with total catches per county.")}
+volCounties <- volDat %>% count(county) %>% 
+  st_join(orCounties,.) 
+ggplot(volCounties)+
+  geom_sf(aes(fill=n),show.legend = FALSE)+
+  geom_sf(data=volDat,col="black",size=0.5)+
+  geom_shadowtext(data=volCounties,
+                  aes(x=st_coordinates(st_centroid(volCounties))[,1],y=st_coordinates(st_centroid(volCounties))[,2],
+                      label=n))+
+  # scale_fill_continuous(low="lightblue",high="red",na.value="white")+
+  scale_fill_distiller(palette="OrRd",direction=1,na.value="white")+
+  annotation_scale()+ # replaced obsolete ggsn N bar and scale below with ggspatial equivalent
+  annotation_north_arrow(location = "tr", style = north_arrow_minimal())+
+  #scalebar(orCounties,dist=25,dist_unit="mi",transform=FALSE,model="NAD83",st.size=3,location="bottomright") +
+  #north(orCounties,symbol=3, location="topleft")+
+  theme_bw() + theme(axis.text=element_blank(), axis.title=element_blank(),
+                    axis.line = element_blank(),axis.ticks = element_blank(),
+                    panel.grid = element_blank())
+
+```
+
+\newpage
+
+\section{Total Catches}
+
+Volunteers from the Oregon Bee Atlas project caught `r nrow(dat)` bees across `r length(unique(dat$county))` `r ifelse(length(unique(dat$county))>1,"counties","county")` from  `r format(min(dat$date),format="%B %d, %Y")` to `r format(max(dat$date),format="%B %d, %Y")`, representing `r dat %>% filter(species!="spp.") %>% pull(genSpp) %>% unique() %>% length()` unique species and `r dat %>% filter(species!="spp.") %>% pull(genus) %>% unique() %>% length()` unique genera. The __Nimble Net Award__ (most specimens collected) goes to `r top3N$collector[1]`, `r top3N$collector[2]`, and `r top3N$collector[3]`, who caught a total of `r top3N$n[1]`, `r top3N$n[2]`, and `r top3N$n[3]` specimens. The _positive_ kind of __Darwin Award__ (most species collected) goes to `r top3Spp$collector[1]`, `r top3Spp$collector[2]`, and `r top3Spp$collector[3]`, who caught a total of `r top3Spp$nSpp[1]`, `r top3Spp$nSpp[2]`, and `r top3Spp$nSpp[3]` unique species. Well done!
+
+
+```{r, fig.height=11*0.6,fig.width=9*0.6, fig.cap = "Bees caught by all volunteers, broken down by species, genus, and family."}
+abundPlots(dat,colSet="Set1",scaleYtext = c(0.4,0.5,1.1))
+```
+
+```{r, fig.height=9,fig.width=8, fig.cap = "Number of bee specimens and number of unique bee species caught by all volunteers."}
+
+# Bar plot of catches per volunteer, (x = Collector, y = # specimens), with hline and 500 and 50 bees
+p1 <- dat %>% st_drop_geometry() %>%  count(collector) %>% 
+  arrange(n) %>% mutate(collector=factor(collector,levels=collector)) %>% 
+  mutate(isCol=collector=="VOLUNTEER_NAME") %>% 
+  ggplot(aes(x=collector,y=n))+geom_col(aes(fill=isCol),show.legend=FALSE)+
+  geom_hline(yintercept=c(50,500,1000),linetype="dashed",col="grey")+
+  coord_flip()+scale_fill_manual(values=c("black","red"))+
+  labs(y="Number of Specimens",x=NULL)+
+  scale_y_continuous(breaks=c(50,250,500,750,1000,1250))
+
+# Bar plot of species per volunteer, (x = Collector, y = # specimens), with hline and 500 and 50 bees
+p2 <- dat %>% st_drop_geometry() %>%  group_by(collector) %>% summarize(n=length(unique(genSpp))) %>% 
+  arrange(n) %>% mutate(collector=factor(collector,levels=collector)) %>% 
+  mutate(isCol=collector=="VOLUNTEER_NAME") %>% 
+  ggplot(aes(x=collector,y=n))+geom_col(aes(fill=isCol),show.legend=FALSE)+
+  geom_hline(yintercept=c(50,100),linetype="dashed",col="grey")+
+  coord_flip()+scale_fill_manual(values=c("black","red"))+
+  labs(y="Number of Unique Species",x=NULL)+
+  scale_y_continuous()
+
+ggarrange(p1,p2,ncol=2)
+
+```
+
+```{r countyBeeMap, fig.cap="Total specimens caught per county, along with catch location of each specimen (black dots). For genus- and species-specific information for each county, see Tables 3 and 4."}
+
+#Map of county records
+dat %>% ggplot()+
+  geom_sf(data=orCounties,aes(fill=ifelse(nRecords==0,NA,nRecords)),show.legend = FALSE)+
+  geom_sf(size=0.5)+
+  # geom_sf_text(data=st_centroid(orCounties),aes(geometry=geometry,label=nRecords),col="white",size=3)+ #Regular text is hard to read
+  geom_shadowtext(data=orCounties,
+                  aes(x=st_coordinates(st_centroid(orCounties))[,1],y=st_coordinates(st_centroid(orCounties))[,2],
+                      label=ifelse(nRecords==0,NA,nRecords)))+
+  annotation_scale()+ # replaced obsolete ggsn N bar and scale below with ggspatial equivalent
+  annotation_north_arrow(location = "tr", style = north_arrow_minimal())+
+  #scalebar(orCounties,dist=25,dist_unit="mi",transform=FALSE,model="NAD83",st.size=3,location="bottomright") +
+  #north(orCounties,symbol=4,location="topleft")+
+  # scale_fill_continuous(low="lightblue",high="red",na.value="white")+
+  scale_fill_distiller(palette="OrRd",direction=1,na.value="white")+
+  theme_bw() + theme(axis.text=element_blank(), axis.title=element_blank(),
+                     axis.line = element_blank(),axis.ticks = element_blank(),
+                     panel.grid = element_blank())
+
+```
+
+```{r ecoRegBeeMap, fig.cap="Total catches per (Level III) ecoregion, along with catch location of each specimen (black dots)."}
+
+#Map of ecoregion records
+orEcoReg %>% ggplot()+
+  geom_sf(aes(fill=name))+
+  geom_sf(data=dat,size=0.5)+
+  geom_shadowtext(aes(x=st_coordinates(st_centroid(orEcoReg))[,1],y=st_coordinates(st_centroid(orEcoReg))[,2],
+                      label=nRecords))+
+  annotation_scale()+ # replaced obsolete ggsn N bar and scale below with ggspatial equivalent
+  annotation_north_arrow(location = "tr", style = north_arrow_minimal())+
+  #scalebar(orEcoReg,dist=25,dist_unit="mi",transform=FALSE,model="NAD83",st.size=3,location="bottomright") +
+  #north(orEcoReg,symbol=4,location="topleft")+labs(fill="Ecoregion")+
+  scale_fill_brewer(type="qual",palette=3)+
+  theme_bw() + theme(axis.text=element_blank(), axis.title=element_blank(),
+                     axis.line = element_blank(),axis.ticks = element_blank(),
+                     panel.grid = element_blank())
+
+```
+
+
+\newpage
+
+\section{Flight Phenology}
+
+```{r}
+
+quantFun <- function(x, q) { #"Borrowed" from dplyr 1.0.0 summary
+  tibble(x = quantile(x, q), q = q)
+}
+
+#Info for flight season
+phenoRange <- dat %>% st_drop_geometry() %>% mutate(doy=as.numeric(format(date,format="%j"))) %>%
+  summarize(quantFun(x=doy,q=c(0.05,0.25,0.5,0.75,0.95))) %>% 
+  mutate(xOffset=as.Date(as.character(x-10),format="%j"), #x-Location for text label
+         yOffset=length(unique(dat$genSpp[!grepl(".spp",dat$genSpp)])), #y-location for text label
+         x=as.Date(as.character(x),format="%j"), #Actual date
+         lab=paste0(q*100,"%"), # Percentile Label
+         dat=format(x,format="%B %d")) #Date label
+
+```
+
+Most bees (90%) were caught between `r phenoRange$dat[1]` and `r phenoRange$dat[5]`, but the peak of season (50% of specimens) was from `r phenoRange$dat[2]` to `r phenoRange$dat[4]`.
+
+```{r sppPhenology, fig.cap="Phenology plot for all bee species, sorted by median abundance times. Percentiles of overall emergence times (50th & 90th) are shown in grey shaded regions. Date ranges for each species (minimum, first, second, third quartiles, and maximum) are shown only for species with >10 specimens.", fig.height=11*0.6, fig.width=10*0.7}
+
+rectDat <- with(phenoRange,data.frame(perc=c("50th","90th"),
+                                      ymin=x[q==0.25|q==0.05],ymax=x[q==0.75|q==0.95],
+                                      xmin=c(0,0),xmax=rep(yOffset[1],2)))
+
+ 
+dat %>% st_drop_geometry() %>% mutate(doy=as.numeric(format(date,format="%j"))) %>% 
+  filter(species!="spp.") %>% group_by(genSpp) %>% 
+  summarize(n=n(),quantFun(x=doy,q=seq(0,1,0.25))) %>%
+  mutate(q=rank(q)) %>% 
+  pivot_wider(names_from=q,names_prefix="q",values_from=x) %>% 
+  mutate(across(c(q1,q2,q4,q5),~ifelse(n>10,.,NA))) %>% 
+  ungroup() %>% 
+  arrange(desc(q3)) %>% mutate(across(c(q1:q5),~as.Date(as.character(.),format="%j"))) %>% 
+  # filter(n>20) %>% 
+  mutate(genSpp=factor(genSpp,levels=genSpp)) %>%
+  ggplot(aes(x=genSpp)) + geom_linerange(aes(ymin=q1,ymax=q5))+
+  
+  geom_linerange(aes(ymin=q2,ymax=q4),size=1)+ #Bee emergence dates
+  geom_point(aes(y=q3),size=1)+
+  
+  # geom_text(data=phenoRange,aes(x=yOffset,y=xOffset,label=lab),col="red",alpha=0.8)+ #Percentile markers
+  # geom_hline(data=phenoRange,aes(yintercept=x),col="red",linetype="dashed",alpha=0.8)+
+  geom_rect(data=rectDat,aes(x=NULL,xmin=xmin,xmax=xmax,ymin=ymin,ymax=ymax),alpha=0.2,show.legend = FALSE)+
+  
+  coord_flip()+labs(x=NULL,y=NULL)+
+  theme(panel.grid.major.x=element_line(colour="grey"),
+        #panel.grid.minor.x=element_line(colour="grey"),
+        axis.text.x=element_text(size=7),
+        axis.text.y=element_text(size=3))+
+  scale_y_date(date_breaks="1 month",date_labels="%B",date_minor_breaks="1 weeks")
+  
+
+```
+
+\newpage
+
+\section{Plant genera}
+
+```{r}
+#Get top 3 (flower genera richness) collectors
+top3flwCol <- dat %>% st_drop_geometry() %>%  group_by(collector) %>%
+  summarize(n=n(),nGen=length(unique(flwGenus))) %>% 
+  arrange(desc(nGen))
+
+#Get the most popular (most bee specimens) flowers
+top3flw <- dat %>% st_drop_geometry() %>% filter(!is.na(flwGenus)) %>% count(flwGenus) %>% 
+  arrange(desc(n)) %>% slice(1:3)
+
+top3flwSpp <- dat %>% st_drop_geometry() %>% filter(!is.na(flwGenus)) %>% group_by(flwGenus) %>% summarize(nSpp=length(unique(genSpp))) %>% 
+  arrange(desc(nSpp)) %>% slice(1:3)
+
+```
+
+Volunteers collected specimens from a total of `r length(unique(dat$flwGenus))` unique flower genera, with most volunteers sampling from `r median(top3flwCol$nGen)` flower genera (median value). The __Flower Power Award__ (most sampled flower genera) goes to `r top3flwCol$collector[1]`, `r top3flwCol$collector[2]`, and `r top3flwCol$collector[3]`, who collected bees from a total of `r top3flwCol$nGen[1]`, `r top3flwCol$nGen[2]`, and `r top3flwCol$nGen[3]` genera of flowers. Well done!
+
+The flower genera that had the most specimens caught on them were _`r top3flw$flwGenus[1]`_, _`r top3flw$flwGenus[2]`_, and _`r top3flw$flwGenus[3]`_, which yielded a total of `r top3flw$n[1]`, `r top3flw$n[2]`, and `r top3flw$n[3]` specimens. The flower genera that were popular with the most speces of bees were _`r top3flwSpp$flwGenus[1]`_, _`r top3flwSpp$flwGenus[2]`_, and _`r top3flwSpp$flwGenus[3]`_, hosting at total of `r top3flwSpp$nSpp[1]`, `r top3flwSpp$nSpp[2]`, and `r top3flwSpp$nSpp[3]` unique bee species. See Tables \@ref(tab:flwGenCount) and \@ref(tab:flwGenDiv) for more details.
+
+
+```{r countyPlantMap, fig.cap="Recorded number of flower genera per county."}
+
+#Map of county records
+dat %>% ggplot()+
+  geom_sf(data=orCounties,aes(fill=ifelse(nFlwGenera==0,NA,nFlwGenera)),show.legend = FALSE)+
+  geom_sf(size=0.5)+
+  # geom_sf_text(data=st_centroid(orCounties),aes(geometry=geometry,label=nFlwGenera),col="white",size=3)+
+  geom_shadowtext(data=orCounties,
+                  aes(x=st_coordinates(st_centroid(orCounties))[,1],y=st_coordinates(st_centroid(orCounties))[,2],
+                      label=ifelse(nFlwGenera==0,NA,nFlwGenera)))+
+  annotation_scale()+ # replaced obsolete ggsn N bar and scale below with ggspatial equivalent
+  annotation_north_arrow(location = "tr", style = north_arrow_minimal())+
+  #scalebar(orCounties,dist=25,dist_unit="mi",transform=FALSE,model="NAD83",st.size=3,location="bottomright") +
+  #north(orCounties,symbol=4,location="topleft")+
+  # scale_fill_continuous(low="lightblue",high="red",na.value="white")+
+  scale_fill_distiller(palette="Greens",direction=1,na.value="white")+
+  theme_bw() + theme(axis.text=element_blank(), axis.title=element_blank(),
+                     axis.line = element_blank(),axis.ticks = element_blank(),
+                     panel.grid = element_blank())
+
+```
+
+```{r flwGenCount}
+ncols <- 4 #Columns to divide into
+
+# #Figure - this works, but is hard to read, and you can't make out any real numbers
+# dat %>% st_drop_geometry() %>% filter(!is.na(flwGenus)) %>% count(flwGenus) %>% 
+#   arrange(n) %>% mutate(flwGenus=factor(flwGenus,levels=flwGenus)) %>%
+#   mutate(ord=cut(rev(rank(as.numeric(flwGenus))),ncols,labels=1:ncols)) %>% 
+#   arrange(ord,desc(n)) %>%
+#   ggplot(aes(x=flwGenus,y=n))+geom_col() + facet_wrap(~ord,ncol=ncols,scales="free_y")+
+#   coord_flip()+labs(y="Number of specimens",x="Flower genus")+
+#   theme(axis.text.y=element_text(size=5),axis.text.x=element_text(size=6),
+#         strip.background=element_blank(),strip.text=element_blank())
+
+#Table - looks OK, but should probably be made into a function later to avoid replication
+dat %>% st_drop_geometry() %>% filter(!is.na(flwGenus)) %>% count(flwGenus) %>% 
+  arrange(n) %>% mutate(flwGenus=factor(flwGenus,levels=flwGenus)) %>%
+  mutate(ord=cut(rev(rank(as.numeric(flwGenus))),ncols,labels=1:ncols)) %>%
+  arrange(ord,desc(n)) %>% mutate(across(c(flwGenus,n),as.character)) %>% 
+  group_by(ord) %>% mutate(id=1:n()) %>% ungroup() %>%
+  pivot_longer(cols=flwGenus:n) %>% 
+  unite(name,name,ord,sep="_") %>% pivot_wider(id_cols=id,names_from=name,values_from=value) %>% 
+  select(-id) %>% mutate(across(everything(),~ifelse(is.na(.)," ",.))) %>%
+  kable(col.names=rep(c("Genus","Count"),ncols),align=rep(c("r","l"),ncols),
+        caption="Number of bee specimens collected from each plant genus") %>% 
+  column_spec(column=seq(1,ncols*2,2),italic=TRUE) %>% #Genus names
+  kable_styling(latex_options = c("striped"),font_size=6) 
+```
+
+```{r flwGenDiv}
+ncols <- 4 #Columns to divide into
+
+#Table - ideally this would be rarefied richness (adjust for abundance), but OK for now
+dat %>% st_drop_geometry() %>% filter(!is.na(flwGenus)) %>% 
+  group_by(flwGenus) %>% summarize(nSpp=length(unique(genSpp))) %>% 
+  arrange(nSpp) %>% mutate(flwGenus=factor(flwGenus,levels=flwGenus)) %>%
+  mutate(ord=cut(rev(rank(as.numeric(flwGenus))),ncols,labels=1:ncols)) %>%
+  arrange(ord,desc(nSpp)) %>% mutate(across(c(flwGenus,nSpp),as.character)) %>% 
+  group_by(ord) %>% mutate(id=1:n()) %>% ungroup() %>%
+  pivot_longer(cols=flwGenus:nSpp) %>% 
+  unite(name,name,ord,sep="_") %>% pivot_wider(id_cols=id,names_from=name,values_from=value) %>% 
+  select(-id) %>% mutate(across(everything(),~ifelse(is.na(.)," ",.))) %>%
+  kable(col.names=rep(c("Genus","Count"),ncols),align=rep(c("r","l"),ncols),
+        caption="Number of unique bee species collected from each plant genus") %>% 
+  column_spec(column=seq(1,ncols*2,2),italic=TRUE) %>% #Genus names
+  kable_styling(latex_options = c("striped"),font_size=6) 
+```
+
+
+\begin{landscape}
+
+\section{County records}
+
+```{r genusCountyTab}
+
+dat %>% st_drop_geometry() %>% 
+  abundTable(county,genus,TRUE) %>%
+  kable(format="latex",longtable=TRUE,caption="Number of bee specimens from each county, by genus") %>% row_spec(0, angle=90) %>%
+  column_spec(column=1,italic=TRUE) %>% #Genus names
+  column_spec(column=2:length(unique(dat$county))+1,width="0.6em") %>% #Counties
+  column_spec(column=length(unique(dat$county))+2,width="2em") %>% #Total
+  kable_styling(latex_options = c("striped","repeat_header"),font_size=6) 
+  
+```
+
+\newpage
+
+```{r sppCountyTab}
+
+dat %>% st_drop_geometry() %>% filter(species!="spp.") %>%  
+  abundTable(county,genSpp,TRUE) %>%
+  kable(format="latex",longtable=TRUE,caption="Number of bee specimens from each county, by species") %>% row_spec(0, angle=90) %>%
+  column_spec(column=1,italic=TRUE) %>% #Spp names
+  column_spec(column=2:length(unique(dat$county))+1,width="0.6em") %>% #Counties
+  column_spec(column=length(unique(dat$county))+2,width="2em") %>% #Total
+  kable_styling(latex_options = c("striped","repeat_header"),font_size=6) 
+  
+```
+
+\newpage
+
+\end{landscape}
+
+```{r, eval = FALSE, fig.height=5, fig.width=5, fig.cap = "Species accumulation curve for all volunteers"}
+#Species accumulation curve 
+dat %>% group_by(collector) %>% 
+  summarize(n=n(),nSpp=length(unique(genSpp))) %>%
+  ggplot(aes(n,nSpp))+geom_point()+
+  geom_smooth(method="lm",formula=y~sqrt(x))+
+  labs(x="Number of specimens",y="Species richness")
+```
+
+
+```{r}
+options(warn=0) #Turn warnings back on
+```
