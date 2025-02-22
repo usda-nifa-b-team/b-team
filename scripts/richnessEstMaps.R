@@ -4,6 +4,8 @@ library(iNEXT) # package that does spp. richness estimates
 
 source("scripts/intersectShapes.R")
 
+source("scripts/fetchShapes.R")
+
 l4Eco<- mx_read("drive_data/us_eco_l4/")
 
 l4EcoLatLong <- l4Eco %>% st_transform(., crs = 4326)
@@ -29,7 +31,7 @@ propObs <- chaoEst %>% rownames_to_column(var = "L4Ecoregion") %>%
 #adding geometry back in
 sppEstSf <- l4EcoLatLong %>% left_join(propObs, by = c("US_L4NAME" = "L4Ecoregion"))
 
-st_write(sppEstSf, "spatial_data/vectors/RichnessEstimate", driver="ESRI Shapefile");
+st_write(sppEstSf, "spatial_data/vectors/RichnessEstimate", driver="ESRI Shapefile", append = FALSE);
 
 #making map coloured by proportion
 
