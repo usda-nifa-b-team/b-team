@@ -10,7 +10,7 @@ forests <- mx_read("drive_data/FS_National_Forests_Dataset")
 monuments <- mx_read("drive_data/BLM_National_Monuments")
 ecol3 <- mx_read("drive_data/us_eco_l3/")
 
-plant.poll <- timedFread("tabular_data/plant-pollinators-OBA-2-assigned-subset.csv")
+plant.poll <- timedFread("tabular_data/plant-pollinators-OBA-2025-assigned-subset.csv")
 
 plant.poll.sf <- st_as_sf(plant.poll, coords = c("decimalLongitude", "decimalLatitude"), crs=4326) # CRS is WGS:1984
 
@@ -29,14 +29,29 @@ addLabels <- function (obs) {
 plant.poll.sf.labels <- addLabels(plant.poll.sf)
 plant.poll.labels <- addLabels(plant.poll)
 
+bbox_oregon <- st_as_sfc(st_bbox(
+  c(xmin = -124.7102, xmax = -116.3193, ymin = 41.8478, ymax = 46.4360),
+  crs = st_crs(4326)))
+
+oregon_intersection <- as.integer(st_intersects(plant.poll.sf.labels, bbox_oregon))
+
+outsideOregon <- plant.poll.labels[is.na(oregon_intersection), ]
+plant.poll.labels <- plant.poll.labels[!is.na(oregon_intersection), ]
+
+cat("Discarded ", nrow(outsideOregon), " observations as lying outside bounding box\n")
+
+timedWrite(withoutEco, "tabular_data/plant-pollinators-OBA-2025-bbox-discarded.csv")
+
 withoutEco <- plant.poll.labels[is.na(plant.poll.labels$US_L3CODE), ]
 plant.poll.labels <- plant.poll.labels[!is.na(plant.poll.labels$US_L3CODE), ]
 
-timedWrite(plant.poll.labels, "tabular_data/plant-pollinators-OBA-2-assigned-subset-labels.csv")
+cat("Discarded ", nrow(withoutEco), " observations as not assigned to an ecoregion\n")
 
-cat("Discarded ", nrow(withoutEco), " observations as not assigned to an ecoregion")
+timedWrite(withoutEco, "tabular_data/plant-pollinators-OBA-2025-ecoregion-discarded.csv")
 
-timedWrite(withoutEco, "tabular_data/plant-pollinators-OBA-2-region-discarded.csv")
+
+timedWrite(plant.poll.labels, "tabular_data/plant-pollinators-OBA-2025-assigned-subset-labels.csv")
+
 
 l3regions <- ecol3 %>% st_drop_geometry %>% dplyr::distinct(US_L3CODE, US_L3NAME) %>% mutate_at("US_L3CODE", as.numeric)  %>% arrange(US_L3CODE)
 timedWrite(l3regions, "tabular_data/us-eco-l3-regions.csv")

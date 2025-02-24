@@ -159,3 +159,6 @@ dist
 
 # Data downloaded from Google Drive
 drive_data/
+
+# Data downloaded from Box
+box_data/
