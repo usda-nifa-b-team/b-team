@@ -3,7 +3,7 @@ Data and algorithms for the USDA NIFA [B-Team project](https://portal.nifa.usda.
 
 # Plant Pollinator Visualisation App
 
-Browse this app at [https://usda-nifa-b-team.github.io/b-team/viz.html](https://usda-nifa-b-team.github.io/b-team/viz.html)
+Browse this app at [https://oregon-bee-project.github.io/melittoflora/viz.html](https://oregon-bee-project.github.io/melittoflora/viz.html)
 
 # Reporting tools
 
