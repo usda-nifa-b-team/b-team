@@ -54,9 +54,11 @@ theme_set(theme_classic())
 
 # volDat <- dat
 
-collString <- params$collectorName
+collStringSTR <- paste0("^", params$collectorName, "$")
 
-singlesR <- singles %>% filter(str_detect(collector, collString))
+collString <- params$collectorName 
+
+singlesR <- singles %>% filter(str_detect(collector, collStringSTR)) # might need to use collStringSTR here
 
 # for now - removing missing obs to see if it'll plot better
 
@@ -114,13 +116,13 @@ accuracyAll <- data %>% st_drop_geometry() %>%
 ```
 
 ```{r, include= FALSE}
-volDat <- dataNoNA %>% filter(str_detect(collector, collString))
+volDat <- dataNoNA %>% filter(str_detect(collector, collStringSTR))
 
-volAccuracy23 <- accuracy23 %>% filter(str_detect(collector, collString))
+volAccuracy23 <- accuracy23 %>% filter(str_detect(collector, collStringSTR))
 
-volAccuracyAll <- accuracyAll %>% filter(str_detect(collector, collString))
+volAccuracyAll <- accuracyAll %>% filter(str_detect(collector, collStringSTR))
 
-volDatAllYrs <- data %>% filter(str_detect(collector, collString)) # for 2nd page of aggregate bees
+volDatAllYrs <- data %>% filter(str_detect(collector, collStringSTR)) # for 2nd page of aggregate bees
 ```
 
 ```{r, include=F}
@@ -136,7 +138,7 @@ textSizeA[3] <- 1.1 #Make family labels larger
 ```
 \section{Your 2023 Collections}
 
-`r params$collectorName` caught `r nrow(volDat)` bees across `r length(unique(volDat$county))` `r ifelse(length(unique(volDat$county))>1,"counties","county")` from  `r format(min(na.omit(volDat$date)),format="%B %d, %Y")` to `r format(max(na.omit(volDat$date)),format="%B %d, %Y")`, representing `r length(unique(na.omit(volDat$genSpp[!grepl('spp\\.',volDat$genSpp)])))` unique species.
+`r params$collectorName` caught `r nrow(volDat)` bees across `r length(unique(volDat$county))` `r ifelse(length(unique(volDat$county))>1,"counties","county")` from  `r format(min(na.omit(volDat$date)),format="%B %d, %Y")` to `r format(max(na.omit(volDat$date)),format="%B %d, %Y")`, representing `r length(unique(na.omit(volDat$genSpp)))` unique taxa, including `r length(unique(na.omit(volDat$genSpp[!grepl('spp\\.',volDat$genSpp)])))` unique species.
 
 ```{r, out.width="100%", fig.cap = paste0("Bees caught by ", collString, ", broken down by species, genus, and family.")}
 abundPlots(volDat,colourSet="Set1", scaleYtext = textSizeA)
@@ -146,7 +148,7 @@ abundPlots(volDat,colourSet="Set1", scaleYtext = textSizeA)
 
 \section{All Your Collections}
 
-`r params$collectorName` caught `r nrow(volDatAllYrs)` bees across `r length(unique(volDatAllYrs$county))` `r ifelse(length(unique(volDatAllYrs$county))>1,"counties","county")` from  `r format(min(na.omit(volDatAllYrs$date)),format="%B %d, %Y")` to `r format(max(na.omit(volDatAllYrs$date)),format="%B %d, %Y")`, representing `r length(unique(na.omit(volDatAllYrs$genSpp[!grepl('spp\\.',volDatAllYrs$genSpp)])))` unique species. `r ifelse(nrow(singlesR)>0,paste0(params$collectorName, " also caught the only _",singlesR$genSpp[1],"_ in the collection!"),"")`
+`r params$collectorName` caught `r nrow(volDatAllYrs)` bees across `r length(unique(volDatAllYrs$county))` `r ifelse(length(unique(volDatAllYrs$county))>1,"counties","county")` from  `r format(min(na.omit(volDatAllYrs$date)),format="%B %d, %Y")` to `r format(max(na.omit(volDatAllYrs$date)),format="%B %d, %Y")`, representing `r length(unique(na.omit(volDatAllYrs$genSpp)))` unique taxa, including `r length(unique(na.omit(volDatAllYrs$genSpp[!grepl('spp\\.',volDatAllYrs$genSpp)])))` unique species. `r ifelse(nrow(singlesR)>0,paste0(params$collectorName, " also caught the only _",singlesR$genSpp[1],"_ in the collection!"),"")`
 
 ```{r, include=F}
 
@@ -208,7 +210,7 @@ textSize[3] <- 1.1 #Make family labels larger
 abundPlots(dataNoNA,colourSet="Set1",scaleYtext = textSize,keepSpp = FALSE)
 ```
 
-```{r allCatches, fig.height=9,fig.width=8, fig.cap = paste0("Number of bee specimens and unique bee species caught by all volunteers, with your effort shown in red.")}
+```{r allCatches, fig.height=9,fig.width=8, fig.cap = paste0("Number of bee specimens and unique bee species caught by all volunteers, with your effort shown in red. This graph should give you an idea of how many specimens you would need to catch to begin seeing rarer bee species.")}
 
 #Species accumulation curve 
 data %>% st_drop_geometry() %>% 
@@ -342,7 +344,6 @@ phenoRangeW <- phenoW %>% st_drop_geometry() %>% filter(!is.na(date)) %>%
          dat=format(x,format="%B %d")) #Date label
 
 ```
-
 __West of__ (and including) the Cascade Mountains, most bees (90%) were caught between `r phenoRangeW$dat[1]` and `r phenoRangeW$dat[5]`, but the peak of season (50% of specimens) was from `r phenoRangeW$dat[2]` to `r phenoRangeW$dat[4]`.
 
 ```{r sppPhenologyW, fig.cap="Phenology plot for all bee species caught in or West of the Cascade Mountains, sorted by median abundance times. Percentiles of overall emergence times (50th & 90th) are shown in grey shaded regions. Date ranges for each species (minimum, first, second, third quartiles, and maximum) are shown only for species with >10 specimens.", fig.height=11*0.6, fig.width=10*0.7}
@@ -365,8 +366,8 @@ phenoW %>% st_drop_geometry() %>% filter(!is.na(date)) %>%
   mutate(genSpp=factor(genSpp,levels=genSpp)) %>%
   ggplot(aes(x=genSpp)) + geom_linerange(aes(ymin=q1,ymax=q5))+
 
-  geom_linerange(aes(ymin=q2,ymax=q4),size=1)+ #Bee emergence dates
-  geom_point(aes(y=q3),size=1) +
+  geom_linerange(aes(ymin=q2,ymax=q4),size=0.3)+ #Bee emergence dates
+  geom_point(aes(y=q3),size=0.3) +
  
   # geom_text(data=phenoRange,aes(x=yOffset,y=xOffset,label=lab),col="red",alpha=0.8)+ #Percentile markers
   # geom_hline(data=phenoRange,aes(yintercept=x),col="red",linetype="dashed",alpha=0.8)+
@@ -376,10 +377,11 @@ phenoW %>% st_drop_geometry() %>% filter(!is.na(date)) %>%
   theme(panel.grid.major.x=element_line(colour="grey"),
         #panel.grid.minor.x=element_line(colour="grey"),
         axis.text.x=element_text(size=7),
-        axis.text.y=element_text(size=3))+
+        axis.text.y=element_text(size= 1))+
   scale_y_date(date_breaks="1 month",date_labels="%B",date_minor_breaks="1 weeks")
   
 ```
+
 \newpage
 __East of__ the Cascade Mountains, most bees (90%) were caught between `r phenoRangeE$dat[1]` and `r phenoRangeE$dat[5]`, but the peak of season (50% of specimens) was from `r phenoRangeE$dat[2]` to `r phenoRangeE$dat[4]`.
 
@@ -403,8 +405,8 @@ phenoE %>% st_drop_geometry() %>% filter(!is.na(date)) %>%
   mutate(genSpp=factor(genSpp,levels=genSpp)) %>%
   ggplot(aes(x=genSpp)) + geom_linerange(aes(ymin=q1,ymax=q5))+
 
-  geom_linerange(aes(ymin=q2,ymax=q4),size=1)+ #Bee emergence dates
-  geom_point(aes(y=q3),size=1) +
+  geom_linerange(aes(ymin=q2,ymax=q4),size=0.3)+ #Bee emergence dates
+  geom_point(aes(y=q3),size=0.3) +
  
   # geom_text(data=phenoRange,aes(x=yOffset,y=xOffset,label=lab),col="red",alpha=0.8)+ #Percentile markers
   # geom_hline(data=phenoRange,aes(yintercept=x),col="red",linetype="dashed",alpha=0.8)+
@@ -414,7 +416,7 @@ phenoE %>% st_drop_geometry() %>% filter(!is.na(date)) %>%
   theme(panel.grid.major.x=element_line(colour="grey"),
         #panel.grid.minor.x=element_line(colour="grey"),
         axis.text.x=element_text(size=7),
-        axis.text.y=element_text(size=3))+
+        axis.text.y=element_text(size=1))+
   scale_y_date(date_breaks="1 month",date_labels="%B",date_minor_breaks="1 weeks")
   
 ```
@@ -440,7 +442,7 @@ top3flwSpp <- data %>% st_drop_geometry() %>% filter(!is.na(genusPlant)) %>% gro
 
 Volunteers collected specimens from a total of `r length(unique(na.omit(data$genusPlant)))` unique flower genera, with most volunteers sampling from `r median(top3flwCol$nGen)` flower genera (median value). The __Flower Power Kudos__ (most sampled flower genera) goes to `r top3flwCol$collector[1]`, `r top3flwCol$collector[2]`, and `r top3flwCol$collector[3]`, who collected bees from a total of `r top3flwCol$nGen[1]`, `r top3flwCol$nGen[2]`, and `r top3flwCol$nGen[3]` genera of flowers. Well done!
 
-The flower genera that had the most specimens caught on them were _`r top3flw$genusPlant[1]`_, _`r top3flw$genusPlant[2]`_, and _`r top3flw$genusPlant[3]`_, which yielded a total of `r top3flw$n[1]`, `r top3flw$n[2]`, and `r top3flw$n[3]` specimens. The flower genera that were popular with the most species of bees were _`r top3flwSpp$genusPlant[1]`_, _`r top3flwSpp$genusPlant[2]`_, and _`r top3flwSpp$genusPlant[3]`_, hosting at total of `r top3flwSpp$nSpp[1]`, `r top3flwSpp$nSpp[2]`, and `r top3flwSpp$nSpp[3]` unique bee species. See Tables \@ref(tab:flwGenCount) and \@ref(tab:flwGenDiv) for more details.
+The flower genera that had the most specimens caught on them were _`r top3flw$genusPlant[1]`_, _`r top3flw$genusPlant[2]`_, and _`r top3flw$genusPlant[3]`_, which yielded a total of `r top3flw$n[1]`, `r top3flw$n[2]`, and `r top3flw$n[3]` specimens. The flower genera that were popular with the most species of bees were _`r top3flwSpp$genusPlant[1]`_, _`r top3flwSpp$genusPlant[2]`_, and _`r top3flwSpp$genusPlant[3]`_, hosting a total of `r top3flwSpp$nSpp[1]`, `r top3flwSpp$nSpp[2]`, and `r top3flwSpp$nSpp[3]` unique bee species. See Tables \@ref(tab:flwGenCount) and \@ref(tab:flwGenDiv) for more details.
 
 ```{r countyPlantMap, fig.cap="Recorded number of flower genera per county."}
 
@@ -601,7 +603,7 @@ bind_rows(t1,t2,t3) %>%
 
 \section{Taxonomic Accuracy, All Years}
 
-In 2023, you identified `r volAccuracyAll$genusID` of your `r volAccuracyAll$nSpecimens` specimens to genus level and `r volAccuracyAll$genSppID` to species level`r with(volAccuracyAll,ifelse(genusID>0,paste0(", with a genus-level identification accuracy of ",round(100*genusAcc,1),"%"),""))``r with(volAccuracyAll,ifelse(genSppID>0,paste0(" and a species-level identification accuracy of ",round(100*genSppAcc,1),"%"),""))` (see Table \@ref(tab:volDetAccuracyAll)).
+Over your time in the Atlas you identified `r volAccuracyAll$genusID` of your `r volAccuracyAll$nSpecimens` specimens to genus level and `r volAccuracyAll$genSppID` to species level`r with(volAccuracyAll,ifelse(genusID>0,paste0(", with a genus-level identification accuracy of ",round(100*genusAcc,1),"%"),""))``r with(volAccuracyAll,ifelse(genSppID>0,paste0(" and a species-level identification accuracy of ",round(100*genSppAcc,1),"%"),""))` (see Table \@ref(tab:volDetAccuracyAll)).
 In total, volunteers from the Oregon Bee Atlas project identified `r round(100*with(accuracyAll,sum(genusID)/sum(nSpecimens)),1)` % (`r sum(accuracyAll$genusID)`) of the `r sum(accuracyAll$nSpecimens)` bee specimens to the level of genus, with an average accuracy of `r round(100*with(accuracyAll,sum(genusCorrect)/sum(genusID)),1)`%. Volunteers also identified `r round(100*with(accuracyAll,sum(genSppID)/sum(nSpecimens)),1)`% (`r sum(accuracyAll$genSppID)`) of the specimens to species level, and had an average accuracy of `r round(100*with(accuracyAll,sum(genSppCorrect)/sum(genSppID)),1)`% (see Table \@ref(tab:detAccuracyAll)). Nicely done!
 
 

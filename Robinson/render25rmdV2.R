@@ -42,7 +42,7 @@ toRun <- reports %>% filter(row_number()%in%1)
 dat %>% filter(samplingProtocol%in%"aerial net") %>%  
   st_drop_geometry %>% 
   filter(year== 2023) %>% 
-  filter(collector %in% "Lincoln Best") %>% 
+  filter(str_detect(collector, "\\|")) %>% 
     filter(!is.na(genus)) %>% 
   group_by(collector, genSpp) %>% 
   summarise(n())
@@ -75,36 +75,61 @@ no23dat <- dat %>% semi_join(none2023) #no 23 obs
 
 volNamesNo23 <- tibble(names=unique(no23dat$collector)) # name options no 23
 
-reportsNo23 <- tibble( 
-  collec = tibble(names=unique(no23dat$collector)),
-  filename = stringr::str_c(str_replace_all(collec$names, " ", "_"), "_Summary.pdf"),
-  params = purrr::map(collec, ~ list(collectorName = .)))
+# reportsNo23 <- tibble( 
+#   collec = tibble(names=unique(no23dat$collector)),
+#   filename = stringr::str_c(str_replace_all(collec$names, " ", "_"), "_Summary.pdf"),
+#   params = purrr::map(collec, ~ list(collectorName = .)))
+
+rpVert <- no23dat %>% filter(str_detect(string = collector, pattern = "\\|")) #%>% 
+
+# netOnly<- rpVert %>% filter(samplingProtocol %in% "aerial net")
+rpVertRep23 <- tibble( input = "Robinson/templateSheetNewFormat25_no2023.Rmd",
+                       collec = tibble(names = unique(rpVert$collector)),
+                       output_file = stringr::str_c("noneReports/", str_replace_all(collec$names, " ", "_"), "_Summary2023.pdf"),
+                       params = purrr::map(collec$names, ~ list(collectorName = .)))
+
+# extra step to deal with vertical lines in names
+rpVertRep23 %>% mutate(output_file = str_replace(output_file, "\\|", "and")) %>% 
+  select(!collec) %>% pwalk(.f = rmarkdown::render)
 
 reportsNo23 <- tibble( input = "Robinson/templateSheetNewFormat25_no2023.Rmd",
                          collec = tibble(names=unique(no23dat$collector)),
-                         output_file = stringr::str_c(str_replace_all(collec$names, " ", "_"), "_Summary2023.pdf"),
+                         output_file = stringr::str_c("noneReports/", str_replace_all(collec$names, " ", "_"), "_Summary2023.pdf"),
                          params = purrr::map(collec$names, ~ list(collectorName = .)))
 
-reportsNo23 %>% select(!collec) %>% pwalk(.f = rmarkdown::render)
+reportsNo23 %>% filter(!str_detect(string = output_file, pattern = "\\|")) %>% 
+  select(!collec) %>% pwalk(.f = rmarkdown::render)
 
-jsonlite::write_json(reportsNo23$output_file, "Robinson/no2023beefiles.JSON")
+#jsonlite::write_json(reportsNo23$output_file, "Robinson/no2023beefiles.JSON")
 # Some 2023 ---------------------------------------------------------------
 
 some2023 <- caught23 %>%
   filter(nCaught >= 1) %>% 
   select(collector)
 
+done <- some2023 %>% rbind(none2023)
+caught23 %>% anti_join(done)
+
+# check for reports that somehow don't match either - 
+# only Andony - obs, but none ided to species in 2023 is the problem, for now just ran manually below
+
+rmarkdown::render(
+  input = "Robinson/templateSheetNewFormat25_no2023.Rmd",
+  output_file = "Andony_Melathopoulos_Report_2023.pdf",
+  params = list(collectorName = "Andony Melathopoulos")
+)
+
 some23dat <- dat %>% semi_join(some2023) # some 23 obs 
 volNamesSome23 <- tibble(names=unique(some23dat$collector)) # name options some 23
 
 reportsSome23 <- tibble( input = "Robinson/templateSheetNewFormat25.Rmd",
   collec = tibble(names=unique(some23dat$collector)),
-  output_file = stringr::str_c(str_replace_all(collec$names, " ", "_"), "_Summary2023.pdf"),
+  output_file = stringr::str_c("someReports/", str_replace_all(collec$names, " ", "_"), "_Summary2023.pdf"),
   params = purrr::map(collec$names, ~ list(collectorName = .)))
 
 reportsSome23 %>% select(!collec) %>% pwalk(.f = rmarkdown::render)
 
-jsonlite::write_json(reportsSome23$output_file, "Robinson/some2023beefiles.JSON")
+#jsonlite::write_json(reportsSome23$output_file, "Robinson/some2023beefiles.JSON")
 # Below here - troubleshooting errors -------------------------------------
 
 # debugonce(abundPlots)

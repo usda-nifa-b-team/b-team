@@ -12,14 +12,14 @@ library(shadowtext)
 library(tinytex)
 library(iNEXT)
 
-load('Data/cleaned.Rdata')
+load('Robinson/Data/cleaned.Rdata')# or load('Data/cleaned.Rdata')
 
 #readLines('templateSheet.Rmd') #Rmarkdown
 volNames <- tibble(names=unique(dat$collector)) # name options
 
 # make named list of parameters for r markdown params
 reports <- tibble( 
-  collec = tail(tibble(names=unique(dat$collector))),
+  collec = tibble(names=unique(dat$collector)),
   filename = stringr::str_c(str_replace_all(collec$names, " ", "_"), "Summary.pdf"),
   params = purrr::map(collec, ~ list(collectorName = .)))
   
@@ -69,7 +69,7 @@ server <- function(input, output){
    filename = paste0(str_replace_all(input$names, " " ,""), "Results.pdf"), 
      content = function(file) {
        tempReport <- file.path(tempdir(), "templateSheetRR.Rmd")
-       file.copy("templateSheetRR.Rmd", tempReport, overwrite = TRUE)
+       file.copy("Robinson/templateSheetRR.Rmd", tempReport, overwrite = TRUE)
        
        params <- list(collectorName = input$names)
        
