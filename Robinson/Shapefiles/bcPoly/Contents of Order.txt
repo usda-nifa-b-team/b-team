@@ -1,0 +1,14 @@
+------------------
+Order Details
+-----------------
+Order ID: 2479372
+Date: 20250802
+
+----------------------
+Feature Types
+-----------------------
+ - Legally Defined Administrative Areas of BC in directory ABMS_LAA
+
+----------------------------
+Packaged Products
+----------------------------

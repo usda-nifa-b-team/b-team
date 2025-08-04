@@ -1,0 +1,14 @@
+------------------
+Order Details
+-----------------
+Order ID: 2479373
+Date: 20250802
+
+----------------------
+Feature Types
+-----------------------
+ - Province of British Columbia - Legally Defined Administrative Ar in directory ABMS_PROV
+
+----------------------------
+Packaged Products
+----------------------------

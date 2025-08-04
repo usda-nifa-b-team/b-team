@@ -1,0 +1,166 @@
+[
+	{
+		"title" : "Legally Defined Administrative Areas of BC Boundary Locations",
+		"name" : "legally-defined-administrative-areas-of-bc-boundary-locations",
+		"bcdc_data_resource_url" : "https://catalogue.data.gov.bc.ca/dataset/e50b6560-0549-41a6-8035-6b828066692e",
+		"description" : "These point locations were determined from metes and bounds descriptions as written in Letters Patent for the following administrative boundaries:\r\n\r\n* Province of BC\t\r\n\r\n* Regional Districts\r\n\r\n* Municipalities\r\n\r\n* Electoral Areas\r\n\r\n* Islands Trust\r\n\r\n* Local Trust Areas\r\n\r\nPoint locations often represent the beginning or end of a segment defined by a metes and bounds descriptor. Point locations may also represent the intersection of two boundary line segments if it is not a surveyed point (e.g., the boundary switches from following height of land to the centerline of a river).\r\n\r\nA complimentary polygonal dataset that defines the administrative areas is also available [here](https://catalogue.data.gov.bc.ca/dataset/legally-defined-administrative-areas-of-bc).\r\n\r\nIndividual datasets are also available from the following records:\r\n\r\nhttps://catalogue.data.gov.bc.ca/dataset/municipalities-legally-defined-administrative-areas-of-bc\r\nhttps://catalogue.data.gov.bc.ca/dataset/electoral-areas-legally-defined-administrative-areas-of-bc\r\nhttps://catalogue.data.gov.bc.ca/dataset/regional-districts-legally-defined-administrative-areas-of-bc\r\nhttps://catalogue.data.gov.bc.ca/dataset/province-of-british-columbia-legally-defined-administrative-areas-of-bc\r\nhttps://catalogue.data.gov.bc.ca/dataset/islands-trust-legally-defined-administrative-areas-of-bc\r\nhttps://catalogue.data.gov.bc.ca/dataset/local-trust-areas-legally-defined-administrative-areas-of-bc",
+		"purpose" : "Administrative boundaries are used by agencies at all levels of government for land use planning, treaty negotiations, emergency management and planning, running elections, conducting demographic analysis and municipal planning. Boundary locations are points along the boundary that provide geographic coordinates (latitude and longitude) as well as UTM coordinates.  They also identify the PoC (Point of Commencement), which can be used when reviewing metes and bounds descriptions.",
+		"bcdc_type" : "Geographic",
+		"last_modified" : "2025-05-12T06:08:28",
+		"resource_storage_location" : "Bc Geographic Warehouse",
+		"object_name" : "WHSE_LEGAL_ADMIN_BOUNDARIES.ABMS_LGL_ADMIN_AREAS_SVW",
+		"object_short_name" : "ABMS_LAA",
+		"object_table_comments" : "ABMS_LGL_ADMIN_AREAS_SVW contains legally defined administrative boundary areas  in the Province of British Columbia. This view contains multipart features.",
+		"projection_name" : "epsg3005",
+		"license_title" : "Access Only",
+		"license_url" : "https://www2.gov.bc.ca/gov/content?id=1AAACC9C65754E4D89A118B875E0FBDA",
+		"details" : [
+			{
+				"column_comments" : "An operationally-generated unique identification number, e.g., 1, 2,3.",
+				"column_name" : "LGL_ADMIN_AREA_ID",
+				"data_precision" : "10",
+				"data_type" : "NUMBER",
+				"short_name" : "AA_ID"
+			},
+			{
+				"column_comments" : "The authoritative, officially approved name given to the Administrative Area, e.g., Regional District of Alberni Clayquot.",
+				"column_name" : "ADMIN_AREA_NAME",
+				"data_precision" : "200",
+				"data_type" : "VARCHAR2",
+				"short_name" : "AA_NAME"
+			},
+			{
+				"column_comments" : "A short form or commonly-known acronym for the Administrative Area name, e.g., Tofino (Corporation of the Village of Tofino), RDAC (Regional District of Alberni Clayquot).",
+				"column_name" : "ADMIN_AREA_ABBREVIATION",
+				"data_precision" : "40",
+				"data_type" : "VARCHAR2",
+				"short_name" : "ABRVN"
+			},
+			{
+				"column_comments" : "BOUNDARY TYPE is a high-level grouping of Administrative Areas used to categorise features when reporting, e.g., Census, Legal, Administrative.",
+				"column_name" : "ADMIN_AREA_BOUNDARY_TYPE",
+				"data_precision" : "20",
+				"data_type" : "VARCHAR2",
+				"short_name" : "BDY_TYPE"
+			},
+			{
+				"column_comments" : "A low-level grouping of Administrative Areas used to categorise features when reporting, e.g., Province, Regional District, Municipality.",
+				"column_name" : "ADMIN_AREA_TYPE",
+				"data_precision" : "50",
+				"data_type" : "VARCHAR2",
+				"short_name" : "AA_TYPE"
+			},
+			{
+				"column_comments" : "The name given to the larger administrative area (if there is any) of which this feature is a member, e.g., Regional District of Alberni Clayquot (This would be the ADMIN_AREA_GROUP_NAME of the feature called \"The Corporation of the Village of Tofino\").",
+				"column_name" : "ADMIN_AREA_GROUP_NAME",
+				"data_precision" : "200",
+				"data_type" : "VARCHAR2",
+				"short_name" : "AA_PARENT"
+			},
+			{
+				"column_comments" : "The government acronym of the Ministry or sub-org that last requested the change that resulted in the modification of the record, e.g., GeoBC, MMAH.",
+				"column_name" : "CHANGE_REQUESTED_ORG",
+				"data_precision" : "30",
+				"data_type" : "VARCHAR2",
+				"short_name" : "CHNG_ORG"
+			},
+			{
+				"column_comments" : "A short description of the latest alteration of the feature's geographic or attribute content, e.g., Inserted (added new), Change in geometry.",
+				"column_name" : "UPDATE_TYPE",
+				"data_precision" : "50",
+				"data_type" : "VARCHAR2",
+				"short_name" : "UPT_TYPE"
+			},
+			{
+				"column_comments" : "The date and time the record was last modified.",
+				"column_name" : "WHEN_UPDATED",
+				"data_precision" : "7",
+				"data_type" : "DATE",
+				"short_name" : "UPT_DATE"
+			},
+			{
+				"column_comments" : "That the digital map has been appended to Letters Patent of the administrative area and has received cabinet or ministerial approval, i.e., \"Appended\": the digital map has been appended to Letters Patent of the municipality, electoral area, regional district or improvement district and has received cabinet or ministerial approval. The map is referred to as the legal map and forms Schedule 1 to Letters Patent. \"Not Appended\": the digital map exists but currently there is no legislative mechanism that enables the map to be appended to Letters Patent in the absence of a request for a boundary amendment. In other words, while the digital map is the exact representation of the administrative boundary, it is not considered legal until appended to Letters Patent. If there is a discrepancy in the boundary, the written metes and bounds prevail. Null values are permitted for Administrative Areas for which the map status does not apply.",
+				"column_name" : "MAP_STATUS",
+				"data_precision" : "12",
+				"data_type" : "VARCHAR2",
+				"short_name" : "MAP_STATUS"
+			},
+			{
+				"column_comments" : "The most-recent Order-In-Council (OIC) or Ministerial Order (MO) identifier for a particular administrative area. This number is used in conjunction with the OIC_MO_YEAR and the OIC_MO_TYPE to determine the official OIC or MO Number, which is usually in the form ###/YY(YY), e.g., where OIC_MO_NUMBER is 245, the OIC_MO_YEAR is 2013 and the OIC_MO_TYPE is \"OIC\", the latest OIC for this administrative area is OIC 245/13 that was enacted into law in 2013. Similarily, where OIC_MO_NUMBER is 103 and the OIC_MO_YEAR is 2019 and the OIC_MO_TYPE is \"MO\", the latest Ministerial Order for this administrative area is MO 103/2019 enacted into law in 2019.",
+				"column_name" : "OIC_MO_NUMBER",
+				"data_precision" : "7",
+				"data_type" : "VARCHAR2",
+				"short_name" : "OC_M_NMBR"
+			},
+			{
+				"column_comments" : "The four-digit year that the most recent Order-In-Council or Ministerial Order was approved, e.g., 2014.",
+				"column_name" : "OIC_MO_YEAR",
+				"data_precision" : "4",
+				"data_type" : "VARCHAR2",
+				"short_name" : "OC_M_YR"
+			},
+			{
+				"column_comments" : "The short acronym that determines the type of identifier used in the OIC_MO_NUMBER, e.g., OIC (Order-In-Council), MO (Ministerial Order), OTHER (The boundary was issued using a procedure outside of the traditional mechanisms).",
+				"column_name" : "OIC_MO_TYPE",
+				"data_precision" : "20",
+				"data_type" : "VARCHAR2",
+				"short_name" : "OC_M_TYPE"
+			},
+			{
+				"column_comments" : "An Internet URL link to additional project information and/or files related to the OIC_MO_NUMBER.",
+				"column_name" : "WEBSITE_URL",
+				"data_precision" : "254",
+				"data_type" : "VARCHAR2",
+				"short_name" : "WBST_RL"
+			},
+			{
+				"column_comments" : "An Internet URL link to additional image files related to the OIC_MO_NUMBER.",
+				"column_name" : "IMAGE_URL",
+				"data_precision" : "254",
+				"data_type" : "VARCHAR2",
+				"short_name" : "IMAGE_URL"
+			},
+			{
+				"column_comments" : "A semicolon-delimited list of the abbreviations (ADMIN_AREA_ABBREVIATION) of Administrative Area boundaries that are affected by the OIC number in the OIC year, e.g., NCRD-EA E / NCRD-EA H. If a record has the value \"NCRD-EA E / NCRD-EA H\" for AFFECTED_ADMIN_AREA_ABRVN, an ADMIN_AREA_ABBREVIATION of Prince Rupert, an OIC/MO (OIC_MO_NUMBER) value of 501/14, an OIC/MO Year (OIC_MO_YEAR) value of 2014, and an Administrative Area Group Name (ADMIN_AREA_GROUP_NAME) of North Coast Regional District, then the interpretation is that OIC 501 in the year 2014 for Prince Rupert also affects the boundaries of Electoral Areas NCRD-EA E and NCRD-EA H in the North Coast Regional District.",
+				"column_name" : "AFFECTED_ADMIN_AREA_ABRVN",
+				"data_precision" : "120",
+				"data_type" : "VARCHAR2",
+				"short_name" : "AFCTD_AREA"
+			},
+			{
+				"column_comments" : "The system calculated area of a two-dimensional polygon in square meters.",
+				"column_name" : "FEATURE_AREA_SQM",
+				"data_precision" : "19",
+				"data_type" : "NUMBER",
+				"short_name" : "AREA_SQM"
+			},
+			{
+				"column_comments" : "The system calculated length or perimeter of a geometry in meters.",
+				"column_name" : "FEATURE_LENGTH_M",
+				"data_precision" : "19",
+				"data_type" : "NUMBER",
+				"short_name" : "LENGTH_M"
+			},
+			{
+				"column_comments" : "The column used to reference the spatial coordinates defining the feature.",
+				"column_name" : "SHAPE",
+				"data_precision" : "64",
+				"data_type" : "SDO_GEOMETRY",
+				"short_name" : "SHAPE"
+			},
+			{
+				"column_comments" : "A column required by spatial layers that interact with ESRI ArcSDE. It is populated with unique values automatically by SDE.",
+				"column_name" : "OBJECTID",
+				"data_precision" : "38",
+				"data_type" : "NUMBER",
+				"short_name" : "OBEJCTID"
+			},
+			{
+				"column_comments" : "A binary column used by spatial tools to store annotation, curve features and CAD data when using the SDO_GEOMETRY storage data type.",
+				"column_name" : "SE_ANNO_CAD_DATA",
+				"data_precision" : "4000",
+				"data_type" : "BLOB"
+			}
+		]
+	}
+]
