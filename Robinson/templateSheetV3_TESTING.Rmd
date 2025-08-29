@@ -46,8 +46,11 @@ opts_chunk$set(echo = FALSE, eval = TRUE, warning = FALSE, message = FALSE)
 
 opts_knit$set(eval.after = "fig.cap")
 options(dplyr.summarise.inform=FALSE, warn=-1) #Suppress warnings
-
 theme_set(theme_classic())
+```
+
+
+```{r, include=FALSE}
 #Load data - needs to be done in shiny app head to work properly
 # load("Data/cleanedNew.Rdata")
 
@@ -64,12 +67,22 @@ singlesR <- singles %>% filter(str_detect(collector, collStringSTR)) # might nee
 # for now - removing missing obs to see if it'll plot better
 
 stateSTR <- paste0("^", params$state, "$")
+```
 
+
+```{r, include=FALSE}
 # TODO - check dat vs. data and whether you want original dat, data, and datState(?)
 dat <- dat %>% filter(str_detect(state, stateSTR))
+```
+
+
+```{r, include=FALSE}
 ecoReg <- allEcoReg %>% filter(str_detect(STUSPS, stateSTR))
 allCounty <- allCounty %>% filter(str_detect(STUSPS, stateSTR))
+```
 
+
+```{r, include=FALSE}
 data <- dat %>% filter(!is.na(genus)) %>% filter(!is.na(family)) %>% # do pre filtering here - only bees ided to genus or family
   filter(samplingProtocol == "aerial net") %>% # only netted bees
   filter(!is.na(day)) # remove missing dates - only 1 present in 2023 filter(year %in% 2023)
@@ -352,7 +365,15 @@ ecoReg %>% ggplot()+
 #          dat=format(x,format="%B %d")) #Date label
 
 ```
-<!-- __West of__ (and including) the Cascade Mountains, most bees (90%) were caught between `r phenoRangeW$dat[1]` and `r phenoRangeW$dat[5]`, but the peak of season (50% of specimens) was from `r phenoRangeW$dat[2]` to `r phenoRangeW$dat[4]`. -->
+
+
+```{r}
+# add this back in once shp figured out
+
+# __West of__ (and including) the Cascade Mountains, most bees (90%) were caught between `r phenoRangeW$dat[1]` and `r phenoRangeW$dat[5]`, but the peak of season (50% of specimens) was from `r phenoRangeW$dat[2]` to `r phenoRangeW$dat[4]`.
+
+```
+
 
 ```{r sppPhenologyW, fig.cap="Phenology plot for all bee species caught in or West of the Cascade Mountains, sorted by median abundance times. Percentiles of overall emergence times (50th & 90th) are shown in grey shaded regions. Date ranges for each species (minimum, first, second, third quartiles, and maximum) are shown only for species with >10 specimens.", fig.height=11*0.6, fig.width=10*0.7}
 
@@ -391,7 +412,13 @@ ecoReg %>% ggplot()+
 ```
 
 \newpage
-<!-- __East of__ the Cascade Mountains, most bees (90%) were caught between `r phenoRangeE$dat[1]` and `r phenoRangeE$dat[5]`, but the peak of season (50% of specimens) was from `r phenoRangeE$dat[2]` to `r phenoRangeE$dat[4]`. -->
+
+```{r}
+# add back in after shp fixed
+
+# __East of__ the Cascade Mountains, most bees (90%) were caught between `r phenoRangeE$dat[1]` and `r phenoRangeE$dat[5]`, but the peak of season (50% of specimens) was from `r phenoRangeE$dat[2]` to `r phenoRangeE$dat[4]`.
+```
+
 
 ```{r sppPhenologyE, fig.cap="Phenology plot for all bee species caught east of the Cascade Mountains, sorted by median abundance times. Percentiles of overall emergence times (50th & 90th) are shown in grey shaded regions. Date ranges for each species (minimum, first, second, third quartiles, and maximum) are shown only for species with >10 specimens.", fig.height=11*0.6, fig.width=10*0.7}
 

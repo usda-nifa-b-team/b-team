@@ -15,44 +15,43 @@ load('Robinson/Data/cleanedV3.Rdata') # or load('Data/cleaned.Rdata')
 
 # Test render reports -----------------------------------------------------
 
-# top4testing <- dat %>% 
-#   filter(state!="OR") %>% 
-#   group_by(collector) %>%
-#   count() %>% 
-#   arrange(desc(n)) %>% 
-#   st_drop_geometry() %>% 
-#   head(n = 15) %>% 
-#   select(!n)
+top4testing <- dat %>%
+  filter(state!="OR") %>%
+  group_by(collector) %>%
+  count() %>%
+  arrange(desc(n)) %>%
+  st_drop_geometry() %>%
+  head(n = 15) %>%
+  select(!n)
+
+stateTests <- dat %>%
+  semi_join(top4testing) %>%
+  filter(!is.na(genSpp)) %>%
+  filter(state!="OR") %>%
+  group_by(collector) %>%
+  mutate (n = n()) %>%
+  arrange(desc(n))
+
+ dat <- stateTests
 # 
-# stateTests <- dat %>% 
-#   semi_join(top4testing) %>% 
-#   filter(!is.na(genSpp)) %>% 
-#   filter(state!="OR") %>% 
-#   group_by(collector) %>% 
-#   mutate (n = n()) %>% 
-#   arrange(desc(n))
-
-# dat <- stateTests
-
-lr <- dat %>% filter(collector %in% "Lisa Robinson") %>%
-  filter(!is.na(genSpp))
-
+# lr <- dat %>% filter(collector %in% "Lisa Robinson") %>%
+#   filter(!is.na(genSpp))
+# 
   rmarkdown::render(
     input = "Robinson/templateSheetV3_TESTING.Rmd",
       output_file = "testV3_WA.pdf",
-      params = list(collectorName = "Lisa Robinson", 
+      params = list(collectorName = "Lisa Robinson",
                     state = "WA")
   )
   
-load('Robinson/Data/cleanedV3.Rdata') # or load('Data/cleaned.Rdata')
+#load('Robinson/Data/cleanedV3.Rdata') # or load('Data/cleaned.Rdata')
 
-rmarkdown::render(
-  input = "Robinson/templateSheetV3_TESTING.Rmd",
-  output_file = "testV3_OR.pdf",
-  params = list(collectorName = "Lisa Robinson", 
-                state = "OR")
-)
-
+# rmarkdown::render(
+#   input = "Robinson/templateSheetV3_TESTING.Rmd",
+#   output_file = "testV3_OR.pdf",
+#   params = list(collectorName = "Lisa Robinson", 
+#                 state = "OR")
+# )
 
 # rmarkdown::render(
 #   input = "Robinson/templateSheetV3.Rmd",
@@ -66,6 +65,9 @@ rmarkdown::render(
 #   params = list(collectorName = "Bonnie Shoffner")
 # )
 #readLines('templateSheet.Rmd') #Rmarkdown
+  
+# List volunteers for making all reports ---- 
+
 volNames <- tibble(names=unique(dat$collector)) # name options
 
 # make named list of parameters for r markdown params - this will need to make sure there's more than one observation possible
