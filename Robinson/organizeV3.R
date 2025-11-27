@@ -188,7 +188,7 @@ wideTable <- function(d,countBy={{countBy}},countNum={{countNum}},nsplit=NA,colN
     group_by(ord) %>% mutate(id=1:n()) %>% ungroup() %>%
     pivot_longer(cols={{countBy}}:{{countNum}}) %>%
     unite(name,name,ord,sep="_") %>% pivot_wider(id_cols=id,names_from=name,values_from=value) %>%
-    select(-id) %>% mutate(across(everything(),~ifelse(is.na(.)," ",.)))
+    dplyr::select(-id) %>% mutate(across(everything(),~ifelse(is.na(.)," ",.)))
   
   if(returnDF) return(d) #Returns dataframe
   
@@ -203,7 +203,7 @@ wideTable <- function(d,countBy={{countBy}},countNum={{countNum}},nsplit=NA,colN
 # round 1 - import 
 dat1 <- read_csv("Robinson/Data/OBA_2018-2024_all_records.csv") %>% 
   rename_with(.cols = everything(), .fn = make.names) %>% 
-  select(
+  dplyr::select(
          recordedBy, 
          day, month, year, verbatimEventDate, # date = verbatimEventDate - make own date anyway in next round
          country, stateProvince, county, locality, # location names 
@@ -358,7 +358,7 @@ dat <- dat %>%
 itis <- read_csv("Robinson/Data/ITIS_global_bee_taxonomy_lookup_7_28_2025.csv") %>% 
   dplyr::group_by(genus, family) %>% summarise() # family-genus table
 
-dat <- dat %>% select(!family) %>% left_join(itis) # fill family column
+dat <- dat %>% dplyr::select(!family) %>% left_join(itis) # fill family column
 
 if(!('family' %in% names(dat))){
   warning('Family column not found for final determination. Populating from genus table.')
@@ -377,7 +377,7 @@ if(any(with(dat,is.na(familyVolDet) & !is.na(genusVolDet)))){
   
   dat <- dat %>% 
     mutate(genusVolDet = str_to_title(str_squish(genusVolDet))) %>% 
-    select(!familyVolDet) %>% 
+    dplyr::select(!familyVolDet) %>% 
     left_join(itisVolFam) # could fix a couple spelling errors for hyleaus and hapropoda, others are Epimelissodes and Ripiphorus- blister beetle?
   
   if(any(with(dat,is.na(familyVolDet) & !is.na(genusVolDet)))){ #Check again
@@ -401,7 +401,7 @@ dat <- dat %>%
 
 #Shapefiles of Oregon counties
 orCounties <- st_read("Robinson/Shapefiles/orcntypoly.shp") %>% #Read in county polygons
-  select(unitID:altName) %>% st_set_crs(4269) %>% #NAD83
+  dplyr::select(unitID:altName) %>% st_set_crs(4269) %>% #NAD83
   st_transform(3643) %>%  #Transform to Oregon Lambert
   mutate(nRecords=sapply(st_contains(.,dat),length), #Number of bee specimens per county
          nFlwGenera=sapply(st_contains(.,dat),function(x) length(unique(na.omit(dat$genusPlant[x]))))) #Number of flower genera
@@ -413,7 +413,7 @@ usStates <- st_read("Robinson/Shapefiles/cb_2018_us_state_500k/cb_2018_us_state_
 
 stFP <- usStates %>% st_drop_geometry() %>% 
   mutate(stateName = NAME) %>% 
-  select(STATEFP, STUSPS, stateName) # finding codes for filtering county shapefile
+  dplyr::select(STATEFP, STUSPS, stateName) # finding codes for filtering county shapefile
 
 usCounties <- st_read("Robinson/Shapefiles/cb_2018_us_county_500k/cb_2018_us_county_500k.shp")
 
@@ -423,7 +423,7 @@ usCountiesW <- usCounties %>%
    mutate(unitID = COUNTYNS, 
           altName = NAME, 
           instName = paste0(altName," County")) %>% 
-  select(unitID, 
+  dplyr::select(unitID, 
          instName, 
          altName,
          stateName,
@@ -441,7 +441,7 @@ bcRegions <- st_read("Robinson/Shapefiles/bcPoly/ABMS_LGL_ADMIN_AREAS_SVW/ABMS_L
          altName = AA_NAME, 
          stateName = "British Columbia",
          STUSPS = "BC") %>% 
-  select(unitID, instName, altName, stateName, STUSPS, geometry) %>% 
+  dplyr::select(unitID, instName, altName, stateName, STUSPS, geometry) %>% 
   st_transform(3643) %>%  #Transform to Oregon Lambert
   mutate(nRecords=sapply(st_contains(.,dat),length), #Number of bee specimens per county
          nFlwGenera=sapply(st_contains(.,dat),function(x) length(unique(na.omit(dat$genusPlant[x])))))
@@ -474,7 +474,25 @@ allEcoReg <- st_read("Robinson/Shapefiles/us_eco_l3_state_boundaries/us_eco_l3_s
   mutate(name=gsub('Cascades Slopes','Cascades\nSlopes',name)) %>% #Add line break (\n) to "Cascades Slopes"
   mutate(nRecords=sapply(st_contains(.,dat),length), #Number of bee specimens per ecoregion
          nFlwGenera=sapply(st_contains(.,dat),function(x) length(unique(na.omit(dat$genusPlant[x]))))) #Number of flower genera
-  
+
+ggplot(allEcoReg)+
+  geom_sf()
+
+ecoRegSimplified <- allEcoReg %>% # make one multipolygon for all L3 ecoregions
+  group_by(US_L3CODE, name, NA_L3CODE, NA_L3NAME, NA_L2CODE, NA_L2NAME, 
+           NA_L1CODE, NA_L1NAME, STATE_NAME, 
+           L3_KEY, L2_KEY, L1_KEY, STATEFP, STUSPS) %>% 
+  summarise() %>% ungroup() %>%  
+  mutate(nRecords=sapply(st_contains(.,dat),length), #Number of bee specimens per L3 ecoregion per state
+         nFlwGenera=sapply(st_contains(.,dat),function(x) length(unique(na.omit(dat$genusPlant[x]))))) #Number of flower genera per L3 ecoreg per state
+# cats <- unique(ecoRegSimplified$L3_KEY)
+# colurF <- colorFactor("RdYlBu", domain = cats)
+# leaflet() %>% 
+#   addPolygons(data = ecoRegSimplified %>% st_transform(crs = 4326), color = ~colurF(cats))
+# library(leaflet)
+
+allEcoReg <- ecoRegSimplified # replace 
+
 #Overwrite county name using shapefiles, using lat/lon data from individual records (takes ~10 sec)
 countyMatch <- sapply(st_within(dat,allCounty),function(x) x) #Get county indices for locations
 

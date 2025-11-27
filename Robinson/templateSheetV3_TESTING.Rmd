@@ -67,6 +67,8 @@ singlesR <- singles %>% filter(str_detect(collector, collStringSTR)) # might nee
 # for now - removing missing obs to see if it'll plot better
 
 stateSTR <- paste0("^", params$state, "$")
+
+stateString <- params$state
 ```
 
 
@@ -100,7 +102,7 @@ top3N <- dataNoNA %>% st_drop_geometry() %>% count(collector) %>%
 
 #Get overall taxonomic accuracy ratings
 accuracy23 <- dataNoNA %>% st_drop_geometry() %>% 
-  select(collector,genusVolDet,genus,volunteerGenSpp,genSpp) %>% 
+  dplyr::select(collector,genusVolDet,genus,volunteerGenSpp,genSpp) %>% 
   mutate(across(c(volunteerGenSpp,genSpp),~ifelse(grepl('spp\\.',.x),NA,.x))) %>% 
   mutate(genusMatch=genusVolDet==genus) %>% 
   mutate(genSppMatch=volunteerGenSpp==genSpp) %>% 
@@ -113,7 +115,7 @@ accuracy23 <- dataNoNA %>% st_drop_geometry() %>%
   mutate(across(contains('Acc'),~ifelse(is.nan(.x),NA,.x)))
 
 accuracyAll <- data %>% st_drop_geometry() %>% 
-  select(collector,genusVolDet,genus,volunteerGenSpp,genSpp) %>% 
+  dplyr::select(collector,genusVolDet,genus,volunteerGenSpp,genSpp) %>% 
   mutate(across(c(volunteerGenSpp,genSpp),~ifelse(grepl('spp\\.',.x),NA,.x))) %>% 
   mutate(genusMatch=genusVolDet==genus) %>% 
   mutate(genSppMatch=volunteerGenSpp==genSpp) %>% 
@@ -188,7 +190,7 @@ abundPlots(volDatAllYrs,colourSet="Set1", scaleYtext = textSizeA)
 ```
 
 
-```{r volMap, warning=FALSE, fig.cap= paste0("Bee catch locations for ", collString, " (within ", stateSTR, "), along with total catches per county.")}
+```{r volMap, warning=FALSE, fig.cap= paste0("Bee catch locations for ", collString, " (within ", stateString, "), along with total catches per county.")}
 volCounties <- volDatAllYrs %>% count(county) %>% 
   st_join(allCounty,.) %>% mutate(n = replace_na(n, 0))
 
@@ -214,7 +216,7 @@ ggplot(volCounties)+
 
 \section{Total Catches}
 
-Volunteers from the Oregon Bee Atlas project caught `r nrow(dataNoNA)` bees across `r length(unique(dataNoNA$county))` `r ifelse(length(unique(dataNoNA$county))>1,"counties","county")` from  `r format(min(na.omit(dataNoNA$date)),format="%B %d, %Y")` to `r format(max(dataNoNA$date),format="%B %d, %Y")`, representing `r dataNoNA %>% filter(species!="spp.") %>% pull(genSpp) %>% unique() %>% length()` unique species and `r dataNoNA %>% pull(genus) %>% unique() %>% length()` unique genera. The __Nimble Net Kudos__ (most specimens collected) goes to `r top3N$collector[1]`, `r top3N$collector[2]`, and `r top3N$collector[3]`, who caught a total of `r top3N$n[1]`, `r top3N$n[2]`, and `r top3N$n[3]` specimens. The _positive_ kind of __Darwin Award__ (most species collected) goes to `r top3Spp$collector[1]`, `r top3Spp$collector[2]`, and `r top3Spp$collector[3]`, who caught a total of `r top3Spp$nSpp[1]`, `r top3Spp$nSpp[2]`, and `r top3Spp$nSpp[3]` unique species. Well done!
+Volunteers from the `r stateString` Bee Atlas project caught `r nrow(dataNoNA)` bees across `r length(unique(dataNoNA$county))` `r ifelse(length(unique(dataNoNA$county))>1,"counties","county")` from  `r format(min(na.omit(dataNoNA$date)),format="%B %d, %Y")` to `r format(max(dataNoNA$date),format="%B %d, %Y")`, representing `r dataNoNA %>% filter(species!="spp.") %>% pull(genSpp) %>% unique() %>% length()` unique species and `r dataNoNA %>% pull(genus) %>% unique() %>% length()` unique genera. The __Nimble Net Kudos__ (most specimens collected) goes to `r top3N$collector[1]`, `r top3N$collector[2]`, and `r top3N$collector[3]`, who caught a total of `r top3N$n[1]`, `r top3N$n[2]`, and `r top3N$n[3]` specimens. The _positive_ kind of __Darwin Award__ (most species collected) goes to `r top3Spp$collector[1]`, `r top3Spp$collector[2]`, and `r top3Spp$collector[3]`, who caught a total of `r top3Spp$nSpp[1]`, `r top3Spp$nSpp[2]`, and `r top3Spp$nSpp[3]` unique species. Well done!
 
 ```{r allSppFig, fig.height=11*0.6,fig.width=9*0.6, fig.cap = "Bees caught by all volunteers, broken down by species, genus, and family."}
 
@@ -285,8 +287,8 @@ data %>% st_drop_geometry() %>%
 #Map of county records
 data %>% ggplot()+
   geom_sf(data=allCounty,aes(fill=ifelse(nRecords==0,NA,nRecords)),show.legend = FALSE)+
- # geom_sf(size=0.5)+
-  # geom_sf_text(data=st_centroid(allCounty),aes(geometry=geometry,label=nRecords),col="white",size=3)+ #Regular text is hard to read
+  geom_sf(size=0.5)+
+ # geom_sf_text(data=st_centroid(allCounty),aes(geometry=geometry,label=nRecords),col="white",size=3)+ #Regular text is hard to read
   geom_shadowtext(data=allCounty,
                   aes(x=st_coordinates(st_centroid(allCounty))[,1],y=st_coordinates(st_centroid(allCounty))[,2],
                       label=ifelse(nRecords==0,NA,nRecords)))+
@@ -302,7 +304,7 @@ data %>% ggplot()+
 
 ```
 
-```{r ecoRegBeeMap, fig.cap="Total catches per (Level III) ecoregion, along with catch location of each specimen (black dots)."}
+```{r ecoRegBeeMap, fig.cap="Total catches per ecoregion (Level III), along with catch location of each specimen (black dots)."}
 
 #Map of ecoregion records
 ecoReg %>% ggplot()+
@@ -526,33 +528,37 @@ data %>% st_drop_geometry() %>%
 
 ```{r genusCountyTab}
 
-# data %>% st_drop_geometry() %>% 
-#   abundTable(county,genus,TRUE) %>%
-#   kable(format="latex",longtable=TRUE,caption="Number of bee specimens from each county, by genus. You may want to focus your sampling in under-sampled counties.") %>%
-#   kable_styling(latex_options = c("striped","repeat_header"),font_size=4.25) %>% 
-#   row_spec(0, angle=90) %>% #Rotate row 0 (header) by 90 degrees
-#   column_spec(column=1,italic=TRUE,latex_column_spec = "r") %>% #Genus names
-#   column_spec(column=2:length(unique(data$county))+1) %>% #Counties + data
-#   column_spec(column=length(unique(data$county))+2,latex_column_spec = "l")
-#   
+data %>% st_drop_geometry() %>%
+  abundTable(county,genus,TRUE) %>%
+  kable(format="latex",longtable=TRUE,caption="Number of bee specimens from each county, by genus. You may want to focus your sampling in under-sampled counties.") %>%
+  kable_styling(latex_options = c("striped","repeat_header"),font_size=4.25) %>%
+  row_spec(0, angle=90) %>% #Rotate row 0 (header) by 90 degrees
+  column_spec(column=1,italic=TRUE,latex_column_spec = "r") %>% #Genus names
+  column_spec(column=2:length(unique(data$county))+1) %>% #Counties + data
+  column_spec(column=length(unique(data$county))+2,latex_column_spec = "l")
+
 ```
 
 \newpage
 
 ```{r sppCountyTab}
 
-# data %>% st_drop_geometry() %>% filter(species!="spp.") %>%  
-#   abundTable(county,genSpp,TRUE) %>%
-#   kable(format="latex",longtable=TRUE,align=paste(c(rep('r',nrow(.)-1),'l'),collapse=''),
-#         caption="Number of bee specimens from each county, by species") %>% 
-#   kable_styling(latex_options = c("striped","repeat_header"),font_size=4) %>% 
-#   row_spec(0, angle=90) %>% #Rotate row 0 (header) by 90 degrees
-  
+nCounties <- data %>% 
+    group_by(county, species) %>% 
+    count() %>% 
+    filter(!is.na(species)) # make column specs robust to counties without at least one bee ided to species
+
+data %>% st_drop_geometry() %>% filter(species!="spp.") %>%
+  abundTable(county,genSpp,TRUE) %>%
+  kable(format="latex",longtable=TRUE,align=paste(c(rep('r',nrow(.)-1),'l'),collapse=''),
+        caption="Number of bee specimens from each county, by species") %>%
+  kable_styling(latex_options = c("striped","repeat_header"),font_size=4) %>%
+  row_spec(0, angle=90) %>% #Rotate row 0 (header) by 90 degrees
   ## TODO using column spec here for some reason doesn't work, looks okay ish for now but look closer in later versions
-  # column_spec(column=1,italic=TRUE,latex_column_spec = 'r') %>% #Spp names
-  # column_spec(column=2:length(unique(data$county))+1) %>% #Counties + data
-  # column_spec(column=length(unique(data$county))+2,latex_column_spec = 'l')  #TOTAL column at the end
-  
+  column_spec(column=1,italic=TRUE,latex_column_spec = 'r') %>% #Spp names
+  column_spec(column=2:length(unique(nCounties$county))+1) %>% #Counties + data
+  column_spec(column=length(unique(nCounties$county))+2,latex_column_spec = 'l')  #TOTAL column at the end
+
 ```
 
 \end{landscape}
@@ -562,7 +568,7 @@ data %>% st_drop_geometry() %>%
 \section{Taxonomic Accuracy, 2023}
 
 In 2023, you identified `r volAccuracy23$genusID` of your `r volAccuracy23$nSpecimens` specimens to genus level and `r volAccuracy23$genSppID` to species level`r with(volAccuracy23,ifelse(genusID>0,paste0(", with a genus-level identification accuracy of ",round(100*genusAcc,1),"%"),""))``r with(volAccuracy23,ifelse(genSppID>0,paste0(" and a species-level identification accuracy of ",round(100*genSppAcc,1),"%"),""))` (see Table \@ref(tab:volDetAccuracy23)).
-In total, volunteers from the Oregon Bee Atlas project identified `r round(100*with(accuracy23,sum(genusID)/sum(nSpecimens)),1)` % (`r sum(accuracy23$genusID)`) of the `r sum(accuracy23$nSpecimens)` bee specimens to the level of genus, with an average accuracy of `r round(100*with(accuracy23,sum(genusCorrect)/sum(genusID)),1)`%. Volunteers also identified `r round(100*with(accuracy23,sum(genSppID)/sum(nSpecimens)),1)`% (`r sum(accuracy23$genSppID)`) of the specimens to species level, and had an average accuracy of `r round(100*with(accuracy23,sum(genSppCorrect)/sum(genSppID)),1)`% (see Table \@ref(tab:detAccuracy23)). Nicely done!
+In total, volunteers from the `r stateString` Bee Atlas project identified `r round(100*with(accuracy23,sum(genusID)/sum(nSpecimens)),1)` % (`r sum(accuracy23$genusID)`) of the `r sum(accuracy23$nSpecimens)` bee specimens to the level of genus, with an average accuracy of `r round(100*with(accuracy23,sum(genusCorrect)/sum(genusID)),1)`%. Volunteers also identified `r round(100*with(accuracy23,sum(genSppID)/sum(nSpecimens)),1)`% (`r sum(accuracy23$genSppID)`) of the specimens to species level, and had an average accuracy of `r round(100*with(accuracy23,sum(genSppCorrect)/sum(genSppID)),1)`% (see Table \@ref(tab:detAccuracy23)). Nicely done!
 
 
 ```{r volDetAccuracy23}
@@ -641,7 +647,7 @@ bind_rows(t1,t2,t3) %>%
 \section{Taxonomic Accuracy, All Years}
 
 Over your time in the Atlas you identified `r volAccuracyAll$genusID` of your `r volAccuracyAll$nSpecimens` specimens to genus level and `r volAccuracyAll$genSppID` to species level`r with(volAccuracyAll,ifelse(genusID>0,paste0(", with a genus-level identification accuracy of ",round(100*genusAcc,1),"%"),""))``r with(volAccuracyAll,ifelse(genSppID>0,paste0(" and a species-level identification accuracy of ",round(100*genSppAcc,1),"%"),""))` (see Table \@ref(tab:volDetAccuracyAll)).
-In total, volunteers from the Oregon Bee Atlas project identified `r round(100*with(accuracyAll,sum(genusID)/sum(nSpecimens)),1)` % (`r sum(accuracyAll$genusID)`) of the `r sum(accuracyAll$nSpecimens)` bee specimens to the level of genus, with an average accuracy of `r round(100*with(accuracyAll,sum(genusCorrect)/sum(genusID)),1)`%. Volunteers also identified `r round(100*with(accuracyAll,sum(genSppID)/sum(nSpecimens)),1)`% (`r sum(accuracyAll$genSppID)`) of the specimens to species level, and had an average accuracy of `r round(100*with(accuracyAll,sum(genSppCorrect)/sum(genSppID)),1)`% (see Table \@ref(tab:detAccuracyAll)). Nicely done!
+In total, volunteers from the `r stateString` Bee Atlas project identified `r round(100*with(accuracyAll,sum(genusID)/sum(nSpecimens)),1)` % (`r sum(accuracyAll$genusID)`) of the `r sum(accuracyAll$nSpecimens)` bee specimens to the level of genus, with an average accuracy of `r round(100*with(accuracyAll,sum(genusCorrect)/sum(genusID)),1)`%. Volunteers also identified `r round(100*with(accuracyAll,sum(genSppID)/sum(nSpecimens)),1)`% (`r sum(accuracyAll$genSppID)`) of the specimens to species level, and had an average accuracy of `r round(100*with(accuracyAll,sum(genSppCorrect)/sum(genSppID)),1)`% (see Table \@ref(tab:detAccuracyAll)). Nicely done!
 
 
 ```{r volDetAccuracyAll}

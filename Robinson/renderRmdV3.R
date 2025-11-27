@@ -5,34 +5,38 @@ library(knitr)
 library(kableExtra)
 library(ggpubr)
 library(RColorBrewer)
-library(sf)
 library(ggspatial) #library(ggsn) replaced
 library(shadowtext)
 library(tinytex)
 library(tidyverse)
+library(dplyr)
 
 load('Robinson/Data/cleanedV3.Rdata') # or load('Data/cleaned.Rdata')
 
+# TODO 
+# figure out how to render with state x collector combo - create combined variable?
+# get figures working (depending on how render works) that depend on different state shapefiles etc. 
+
 # Test render reports -----------------------------------------------------
 
-top4testing <- dat %>%
-  filter(state!="OR") %>%
-  group_by(collector) %>%
-  count() %>%
-  arrange(desc(n)) %>%
-  st_drop_geometry() %>%
-  head(n = 15) %>%
-  select(!n)
-
-stateTests <- dat %>%
-  semi_join(top4testing) %>%
-  filter(!is.na(genSpp)) %>%
-  filter(state!="OR") %>%
-  group_by(collector) %>%
-  mutate (n = n()) %>%
-  arrange(desc(n))
-
- dat <- stateTests
+# top4testing <- dat %>%
+#   filter(state!="OR") %>%
+#   group_by(collector) %>%
+#   count() %>%
+#   arrange(desc(n)) %>%
+#   st_drop_geometry() %>%
+#   head(n = 15) %>%
+#   dplyr::select(!n)
+# 
+# stateTests <- dat %>%
+#   semi_join(top4testing) %>%
+#   filter(!is.na(genSpp)) %>%
+#   filter(state!="OR") %>%
+#   group_by(collector) %>%
+#   mutate (n = n()) %>%
+#   arrange(desc(n))
+# 
+#  dat <- stateTests
 # 
 # lr <- dat %>% filter(collector %in% "Lisa Robinson") %>%
 #   filter(!is.na(genSpp))
@@ -43,6 +47,16 @@ stateTests <- dat %>%
       params = list(collectorName = "Lisa Robinson",
                     state = "WA")
   )
+  
+load('Robinson/Data/cleanedV3.Rdata') # or load('Data/cleaned.Rdata')
+# dat is being overwritten in rmd and here
+  rmarkdown::render(
+    input = "Robinson/templateSheetV3_TESTING.Rmd",
+    output_file = "testV3_OR.pdf",
+    params = list(collectorName = "Lisa Robinson",
+                  state = "OR")
+  )
+  
   
 #load('Robinson/Data/cleanedV3.Rdata') # or load('Data/cleaned.Rdata')
 
@@ -110,7 +124,7 @@ caught23 <- caughtAll %>% ungroup() %>%
 
 none2023 <- caught23 %>%
   filter(nCaught < 1) %>% 
-  select(collector)
+  dplyr::select(collector)
 
 no23dat <- dat %>% semi_join(none2023) #no 23 obs
 
@@ -131,7 +145,7 @@ rpVertRep23 <- tibble( input = "Robinson/templateSheetNewFormat25_no2023.Rmd",
 
 # extra step to deal with vertical lines in names
 rpVertRep23 %>% mutate(output_file = str_replace(output_file, "\\|", "and")) %>% 
-  select(!collec) %>% pwalk(.f = rmarkdown::render)
+  dplyr::select(!collec) %>% pwalk(.f = rmarkdown::render)
 
 reportsNo23 <- tibble( input = "Robinson/templateSheetNewFormat25_no2023.Rmd",
                          collec = tibble(names=unique(no23dat$collector)),
@@ -139,14 +153,14 @@ reportsNo23 <- tibble( input = "Robinson/templateSheetNewFormat25_no2023.Rmd",
                          params = purrr::map(collec$names, ~ list(collectorName = .)))
 
 reportsNo23 %>% filter(!str_detect(string = output_file, pattern = "\\|")) %>% 
-  select(!collec) %>% pwalk(.f = rmarkdown::render)
+  dplyr::select(!collec) %>% pwalk(.f = rmarkdown::render)
 
 #jsonlite::write_json(reportsNo23$output_file, "Robinson/no2023beefiles.JSON")
 # Some 2023 ---------------------------------------------------------------
 
 some2023 <- caught23 %>%
   filter(nCaught >= 1) %>% 
-  select(collector)
+  dplyr::select(collector)
 
 done <- some2023 %>% rbind(none2023)
 caught23 %>% anti_join(done)
@@ -168,7 +182,7 @@ reportsSome23 <- tibble( input = "Robinson/templateSheetNewFormat25.Rmd",
   output_file = stringr::str_c("someReports/", str_replace_all(collec$names, " ", "_"), "_Summary2023.pdf"),
   params = purrr::map(collec$names, ~ list(collectorName = .)))
 
-reportsSome23 %>% select(!collec) %>% pwalk(.f = rmarkdown::render)
+reportsSome23 %>% dplyr::select(!collec) %>% pwalk(.f = rmarkdown::render)
 
 #jsonlite::write_json(reportsSome23$output_file, "Robinson/some2023beefiles.JSON")
 # Below here - troubleshooting errors -------------------------------------

@@ -1,10 +1,30 @@
+# script based on wallace maxent shiny page to make a species distribution model
+# goal is to make species level distribution maps for bees with more than about 25 occurrence points
+
 # using wallace to get a starting point
 library(wallace)
 library(sf)
 library(tidyverse)
 library(raster)
 
-# replacing wallace function that doesn't error/notify when duplicate environmental values occur and fails to crop to the extent requested ----
+# TODO 
+# figure out mapping - addRasterImage - how to change palette etc. 
+# define minimum occurrences and set message if deduplicated occurrences fall below threshold - currently just filtering
+# figure out what resolution of bioclim data actually is (to accomplish above threshold)
+# set up spatial filters etc. - need to understand what the masking etc. is trying to do - should be done properly now 
+ # part of this is deduplicating and setting extent based on actual observations - may need state etc. shapefiles
+# Linc ideas about improving maxent for bees? - summer climate? 
+# use 30s bioclim data instead of 2.5 min - crop to only west NA? 
+
+# Save maxent tiles so you don't need to reload them each time in knit
+# make bombus output shareable with rmd
+# figure out how to include them - list of leaflet maps to output  
+
+
+# done 
+# get basic wallace function working to quickly do a species model 
+
+# this is probably not necessary, was for original fxn working but seems to work now
 penvs_bgMask_RRMOD <- function (occs, envs, bgExt, logger = NULL, spN = NULL) 
 {
   if (is.null(bgExt)) {
@@ -29,8 +49,16 @@ penvs_bgMask_RRMOD <- function (occs, envs, bgExt, logger = NULL, spN = NULL)
   return(bgMask)
 }
 
-# getting file to write a temp version ----
- source("scripts/intersectShapes.R")
+source("scripts/maxEnt_Fxn.R")
+
+usStates %>% 
+  filter(STUSPS == "OR") %>%
+  st_concave_hull(ratio = 0.2,  allow_holes = FALSE) %>% 
+  ggplot()+geom_sf()+
+  geom_sf(data = usStates %>% filter(STUSPS == "OR"), colour= "red")
+
+# getting data ----
+ load("Robinson/Data/cleanedV3.Rdata")
 
 # st_write(plant.poll.sf.labels, "pltPolSfLabels4testing.csv", append = FALSE)
 
@@ -44,13 +72,21 @@ penvs_bgMask_RRMOD <- function (occs, envs, bgExt, logger = NULL, spN = NULL)
 
 
 # might need this later to get only species with more than 20 obs - need to remove genus only spp. too
-# plant.poll.sf.labels %>% group_by(scientificName) %>% 
+# plant.poll.sf.labels %>% group_by(genSpp) %>% 
 #   summarise(n = n()) %>% 
 #   filter(n>20)
   
-# occurrences of Bombus caliginosus - should be a good test
 
-bCalig <- plant.poll.sf.labels %>% filter(scientificName %in% "Bombus caliginosus") %>% 
+## prepping data for split/function use----
+
+datReady <- dat %>% mutate(occID = str_c(collector, "_", verbatimEventDate, "_", genSpp, "_" , row_number())) %>% 
+  st_transform(crs = 4326)
+
+# occurrences of Bombus caliginosus - should be a good test ----
+
+bCalig <- datReady %>% 
+  filter(genSpp %in% "Bombus caliginosus") %>% 
+  filter(state%in% "OR") %>% 
   mutate(longitude = st_coordinates(.)[,1],
                       latitude = st_coordinates(.)[,2]) # get coords in columns for next step
 sfOccs_Ab <- bCalig
@@ -76,7 +112,7 @@ occs_vals_Ab <- na.omit(occs_vals_Ab)
 # add columns for env variable values for each occurrence record
 occs_Ab <- cbind(occs_Ab, occs_vals_Ab)
 
-occs_Ab <- occs_Ab %>% mutate(scientific_name = scientificName, occID = `Observation No.`)
+occs_Ab <- occs_Ab %>% mutate(scientific_name = genSpp) # has an occID col as created above
 
 # skipped a step here filtering occurrences within area - all should be within bounds of project
 
@@ -87,13 +123,33 @@ occs_Ab <- poccs_thinOccs(
   occs = occs_Ab, 
   thinDist = 1.5) #km 
 
+# troubleshooting points included in area specified 
+
+includePointsBox <- matrix(c(-124.551, -124.551 , -120, -120, 47, 41, 41, 47.183 ),ncol=2,byrow=FALSE) 
+
+sfAB <- occs_Ab %>% 
+  st_as_sf(coords = c("longitude", "latitude"), crs = 4326)
+
+st_convex_hull(sfAB)
+
+bounds <- includePointsBox %>%  
+  as.data.frame() %>% 
+  st_as_sf(coords = c(1,2))
+
+leaflet() %>% 
+  addCircleMarkers(data = bounds, label = ~geometry) %>% 
+  addProviderTiles("Esri.WorldImagery") %>% 
+  addCircles(data = bCalig)
+
 # need to match env. variables to max possible - say oregon (or ecoregion?)
 # debugonce(penvs_drawBgExtent)
 bgExt_Ab <- penvs_drawBgExtent(
-    polyExtXY = matrix(c(-124.550, -124.550 , -121.355, -121.355, 46.182, 42.072, 42.072, 46.182 ),ncol=2,byrow=FALSE), 
+    polyExtXY = includePointsBox, 
   polyExtID = "testID", 
   drawBgBuf = 0.1, 
   occs = occs_Ab)
+
+
 # Mask environmental data to provided extent
 # having trouble here - won't mask to extent, stays as maxes
 
@@ -213,31 +269,51 @@ m  %>%
 
 #run_wallace()
 
-# 0 to 1 suitability
+# 0 to 1 suitability instead of predicted presence/absence
 
 m_Ab <- model_Ab@models[["fc.L_rm.2"]] 
-predSel_Ab <- predictMaxnet(m_Ab, bgMask_Ab,
-                            type = "logistic", 
+predSel_Ab <- predictMaxnet(m_Ab, bgMask_Ab, type = "logistic"
+                            ,
                             clamp = TRUE)
 # extract the suitability values for all occurrences
 occs_xy_Ab <- occs_Ab[c('longitude', 'latitude')]
 # determine the threshold based on the current prediction
 occPredVals_Ab <- raster::extract(predSel_Ab, occs_xy_Ab)
-# Define probability of quantile based on selected threshold
-thresProb_Ab <- switch("p10", 
-                       "mtp" = 0, "p10" = 0.1, "qtp" = 0)
-# Define threshold value
-thres_Ab <- stats::quantile(occPredVals_Ab, probs = thresProb_Ab)
-# Applied selected threshold
-predSel_Ab <- predSel_Ab > thres_Ab
+# # Define probability of quantile based on selected threshold
+# thresProb_Ab <- switch("p10",
+#                        "mtp" = 0, "p10" = 0.1, "qtp" = 0)
+# # Define threshold value
+# thres_Ab <- stats::quantile(occPredVals_Ab, probs = thresProb_Ab)
+# # Applied selected threshold
+# predSel_Ab <- predSel_Ab > thres_Ab
+# 
 
-# raster::plot(predSel_Ab) # checks that the output looks okay
+raster::plot(predSel_Ab) # checks that the output looks okay
 
 # Get values of prediction
-mapPredVals_Ab <- getRasterVals(predSel_Ab, "logistic")
+mapPredVals_Ab <- getRasterVals(predSel_Ab, "raw")
 
 
 # Define colors and legend  
 rasCols <- c("#2c7bb6", "#abd9e9", "#ffffbf", "#fdae61", "#d7191c")
 legendPal <- colorNumeric(rev(rasCols), mapPredVals_Ab, na.color = 'transparent')
 rasPal <- c('gray', 'blue')
+
+m <- leaflet() %>% addProviderTiles(providers$Esri.WorldTopoMap) 
+
+m  %>%
+  # leaflet::addLegend("bottomright", colors = c('gray', 'blue'),
+  #                    title = "Thresholded Suitability<br>(Training)",
+  #                    labels = c("predicted absence", "predicted presence"),
+  #                    opacity = 1, layerId = "train") %>% 
+  #add occurrence data
+  addCircleMarkers(data = occs_Ab, lat = ~latitude, lng = ~longitude,
+                   radius = 5, color = 'red', fill = TRUE, fillColor = "red",
+                   fillOpacity = 0.2, weight = 2) %>% 
+  ##Add model prediction
+  addRasterImage(predSel_Ab, colors = rasPal, opacity = 1,
+                 group = 'vis', layerId = 'mapPred', method = "ngb") %>%
+  ##add background polygons
+  addPolygons(data = bgExt_Ab, fill = FALSE,
+              weight = 4, color = "blue", group = 'proj')
+
