@@ -1,6 +1,6 @@
 ---
 title: "`r params$collectorName`"
-author: "`r params$state` Bee Atlas Collection and Identification Report"
+author: "`r params$state` Bee Atlas Collection and Identification Report - `r params$year`"
 output: 
   bookdown::pdf_document2:
     toc: false
@@ -9,6 +9,7 @@ output:
 params: 
   collectorName: ""
   state: ""
+  year: ""
 geometry: margin=2cm
 header-includes:
   - \usepackage{booktabs}
@@ -56,7 +57,7 @@ theme_set(theme_classic())
 
 #Volunteer data only
 
-# volDat <- dat
+# volDat <- datS
 
 collStringSTR <- paste0("^", params$collectorName, "$")
 
@@ -73,8 +74,14 @@ stateString <- params$state
 
 
 ```{r, include=FALSE}
-# TODO - check dat vs. data and whether you want original dat, data, and datState(?)
-dat <- dat %>% filter(str_detect(state, stateSTR))
+# DONE - datS = filtered to state, data = spp level IDs, #dataNoNA = spp level in year of report
+stateWithin <- usStates %>% 
+  st_transform(crs = st_crs(dat)) %>% 
+  filter(STUSPS == stateString)
+  
+datS <- dat %>% filter(str_detect(state, stateString)) %>% 
+  st_filter(., stateWithin, .pred = st_within) # getting some points coming in external to OR
+  
 ```
 
 
@@ -85,11 +92,11 @@ allCounty <- allCounty %>% filter(str_detect(STUSPS, stateSTR))
 
 
 ```{r, include=FALSE}
-data <- dat %>% filter(!is.na(genus)) %>% filter(!is.na(family)) %>% # do pre filtering here - only bees ided to genus or family
+data <- datS %>% filter(!is.na(genus)) %>% filter(!is.na(family)) %>% # do pre filtering here - only bees ided to genus or family
   filter(samplingProtocol == "aerial net") %>% # only netted bees
   filter(!is.na(day)) # remove missing dates - only 1 present in 2023 filter(year %in% 2023)
 
-dataNoNA <- data %>% filter(year %in% 2023) # data for 2023 only
+dataNoNA <- data %>% filter(year %in% params$year) # data for 2023 only
 
 #Get top 3 (species richness) collectors
 top3Spp <- dataNoNA %>% st_drop_geometry() %>% group_by(collector) %>%
@@ -159,7 +166,7 @@ textSizeA <- ifelse(textSizeA>1,1,textSizeA) #1 is maximum scaling
 textSizeA[3] <- 1.1 #Make family labels larger
 
 ```
-\section{Your 2023 Collections}
+\section{Your `r params$year` Collections}
 
 `r params$collectorName` caught `r nrow(volDat)` bees across `r length(unique(volDat$county))` `r ifelse(length(unique(volDat$county))>1,"counties","county")` from  `r format(min(na.omit(volDat$date)),format="%B %d, %Y")` to `r format(max(na.omit(volDat$date)),format="%B %d, %Y")`, representing `r length(unique(na.omit(volDat$genSpp)))` unique taxa, including `r length(unique(na.omit(volDat$genSpp[!grepl('spp\\.',volDat$genSpp)])))` unique species.
 
@@ -252,7 +259,7 @@ data %>% st_drop_geometry() %>%
 # scaleYtext <- 0.7
 # 
 # # Bar plot of catches per volunteer, (x = Collector, y = # specimens), with hline and 500 and 50 bees
-# p1 <- dat %>% st_drop_geometry() %>% filter(!grepl('NA',collector)) %>% count(collector) %>%
+# p1 <- datS %>% st_drop_geometry() %>% filter(!grepl('NA',collector)) %>% count(collector) %>%
 #   arrange(n) %>% mutate(collector=factor(collector,levels=collector)) %>% 
 #   mutate(isCol=collector=="VOLUNTEER_NAME") %>% 
 #   ggplot(aes(x=collector,y=n))+geom_col(aes(fill=isCol),show.legend=FALSE)+
@@ -265,7 +272,7 @@ data %>% st_drop_geometry() %>%
 #     axis.ticks.y = element_blank())
 # 
 # # Bar plot of species per volunteer, (x = Collector, y = # specimens), with hline and 500 and 50 bees
-# p2 <- dat %>% st_drop_geometry() %>% group_by(collector) %>% filter(!grepl('NA',collector)) %>%
+# p2 <- datS %>% st_drop_geometry() %>% group_by(collector) %>% filter(!grepl('NA',collector)) %>%
 #   summarize(n=length(unique(genSpp))) %>% 
 #   arrange(n) %>% mutate(collector=factor(collector,levels=collector)) %>% 
 #   mutate(isCol=collector=="VOLUNTEER_NAME") %>% 
@@ -285,7 +292,7 @@ data %>% st_drop_geometry() %>%
 ```{r countyBeeMap, fig.cap="Total specimens caught per county, along with catch location of each specimen (black dots). For genus- and species-specific information for each county, see Tables 3 and 4."}
 
 #Map of county records
-data %>% ggplot()+
+datS %>% ggplot()+ # datS includes specimens not IDed to species, data would be only spp level IDs
   geom_sf(data=allCounty,aes(fill=ifelse(nRecords==0,NA,nRecords)),show.legend = FALSE)+
   geom_sf(size=0.5)+
  # geom_sf_text(data=st_centroid(allCounty),aes(geometry=geometry,label=nRecords),col="white",size=3)+ #Regular text is hard to read
@@ -307,9 +314,11 @@ data %>% ggplot()+
 ```{r ecoRegBeeMap, fig.cap="Total catches per ecoregion (Level III), along with catch location of each specimen (black dots)."}
 
 #Map of ecoregion records
-ecoReg %>% ggplot()+
+ecoReg %>% 
+  mutate(name = str_replace(name, "Klamath Mountains/California High North Coast Range", "Klamath Mountains/\nCalifornia High North \nCoast Range")) %>% # for better figure appearance
+  ggplot()+
   geom_sf(aes(fill=name))+
-  geom_sf(data=data,size=0.5)+
+  geom_sf(data=datS,size=0.5)+ # include specimens not IDed to species, use #data if only for spp level IDs
   geom_shadowtext(aes(x=st_coordinates(st_centroid(ecoReg))[,1],y=st_coordinates(st_centroid(ecoReg))[,2],
                       label=nRecords))+
   annotation_scale()+ # replaced obsolete ggsn N bar and scale below with ggspatial equivalent
@@ -319,7 +328,7 @@ ecoReg %>% ggplot()+
   scale_fill_brewer(type="qual",palette=3)+
   theme_bw() + theme(axis.text=element_blank(), axis.title=element_blank(),
                      axis.line = element_blank(),axis.ticks = element_blank(),
-                     panel.grid = element_blank())
+                     panel.grid = element_blank(), legend.text = element_text(size = 8))
 
 ```
 
@@ -484,9 +493,9 @@ The flower genera that had the most specimens caught on them were _`r top3flw$ge
 ```{r countyPlantMap, fig.cap="Recorded number of flower genera per county."}
 
 #Map of county records
-data %>% ggplot()+
+datS %>% ggplot()+
   geom_sf(data=allCounty,aes(fill=ifelse(nFlwGenera==0,NA,nFlwGenera)),show.legend = FALSE)+
-  geom_sf(size=0.5)+
+  #geom_sf(size=0.5)+ # don't need to show individual bee dots on a genus map
   # geom_sf_text(data=st_centroid(allCounty),aes(geometry=geometry,label=nFlwGenera),col="white",size=3)+
   geom_shadowtext(data=allCounty,
                   aes(x=st_coordinates(st_centroid(allCounty))[,1],y=st_coordinates(st_centroid(allCounty))[,2],
@@ -565,9 +574,9 @@ data %>% st_drop_geometry() %>% filter(species!="spp.") %>%
 
 \newpage
 
-\section{Taxonomic Accuracy, 2023}
+\section{Taxonomic Accuracy, `r params$year`}
 
-In 2023, you identified `r volAccuracy23$genusID` of your `r volAccuracy23$nSpecimens` specimens to genus level and `r volAccuracy23$genSppID` to species level`r with(volAccuracy23,ifelse(genusID>0,paste0(", with a genus-level identification accuracy of ",round(100*genusAcc,1),"%"),""))``r with(volAccuracy23,ifelse(genSppID>0,paste0(" and a species-level identification accuracy of ",round(100*genSppAcc,1),"%"),""))` (see Table \@ref(tab:volDetAccuracy23)).
+In `r params$year`, you identified `r volAccuracy23$genusID` of your `r volAccuracy23$nSpecimens` specimens to genus level and `r volAccuracy23$genSppID` to species level`r with(volAccuracy23,ifelse(genusID>0,paste0(", with a genus-level identification accuracy of ",round(100*genusAcc,1),"%"),""))``r with(volAccuracy23,ifelse(genSppID>0,paste0(" and a species-level identification accuracy of ",round(100*genSppAcc,1),"%"),""))` (see Table \@ref(tab:volDetAccuracy23)).
 In total, volunteers from the `r stateString` Bee Atlas project identified `r round(100*with(accuracy23,sum(genusID)/sum(nSpecimens)),1)` % (`r sum(accuracy23$genusID)`) of the `r sum(accuracy23$nSpecimens)` bee specimens to the level of genus, with an average accuracy of `r round(100*with(accuracy23,sum(genusCorrect)/sum(genusID)),1)`%. Volunteers also identified `r round(100*with(accuracy23,sum(genSppID)/sum(nSpecimens)),1)`% (`r sum(accuracy23$genSppID)`) of the specimens to species level, and had an average accuracy of `r round(100*with(accuracy23,sum(genSppCorrect)/sum(genSppID)),1)`% (see Table \@ref(tab:detAccuracy23)). Nicely done!
 
 
@@ -607,7 +616,7 @@ if(nrow(overallDet)>0){ #If
   tabBreaks <- tabBreaks[tabBreaks>1] #Gets rid of non-existant classes
   
   kable(overallDet,format="latex",longtable=TRUE,align=c('r','r','r','l'),
-        caption="Your determination accuracy in 2023.",
+        caption=paste0("Your determination accuracy in ", params$year, "."),
         col.names=c('Taxon','Specimens ID-ed','Correct ID','% Correct')) %>% 
     pack_rows(index=tabBreaks, #Break up table by taxa
               background = 'lightgray') %>% 
@@ -616,7 +625,7 @@ if(nrow(overallDet)>0){ #If
 } else {
   data.frame('Taxon'='No specimens identified') %>% 
     kable(overallDet,format="latex",longtable=FALSE,align=c('c'),
-        caption="Your determination accuracy in 2023.")
+        caption=paste0("Your determination accuracy in ", params$year, "."))
 }
 
  
@@ -633,7 +642,7 @@ t3 <- dataNoNA %>% filter(!is.na(species),!is.na(specificEpithetVolDet)) %>% #Sp
 colnames(t3) = colnames(t2) = colnames(t1) #Column names
 
 bind_rows(t1,t2,t3) %>% 
-  kable(format="latex",longtable=TRUE,align=c('r','r','r','l'),caption="Determination accuracy for all volunteers in 2023.",
+  kable(format="latex",longtable=TRUE,align=c('r','r','r','l'),caption= paste0("Determination accuracy for all volunteers in ", params$year, "."),
         col.names=c('Taxon','Specimens ID-ed','Correct ID','% Correct')) %>% 
   pack_rows(index=c('Family'=nrow(t1),'Genus'=nrow(t2),'Species'=nrow(t3)), #Break up table by taxa
             background = 'lightgray') %>% 

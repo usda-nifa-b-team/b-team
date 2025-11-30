@@ -15,7 +15,11 @@ load('Robinson/Data/cleanedV3.Rdata') # or load('Data/cleaned.Rdata')
 
 # TODO 
 # figure out how to render with state x collector combo - create combined variable?
-# get figures working (depending on how render works) that depend on different state shapefiles etc. 
+
+#DONE
+
+#DONE(?)
+# get figures working (depending on how render works) that depend on different state shapefiles etc.
 
 # Test render reports -----------------------------------------------------
 
@@ -45,7 +49,8 @@ load('Robinson/Data/cleanedV3.Rdata') # or load('Data/cleaned.Rdata')
     input = "Robinson/templateSheetV3_TESTING.Rmd",
       output_file = "testV3_WA.pdf",
       params = list(collectorName = "Lisa Robinson",
-                    state = "WA")
+                    state = "OR", 
+                    year = "2023")
   )
   
 load('Robinson/Data/cleanedV3.Rdata') # or load('Data/cleaned.Rdata')
@@ -54,31 +59,9 @@ load('Robinson/Data/cleanedV3.Rdata') # or load('Data/cleaned.Rdata')
     input = "Robinson/templateSheetV3_TESTING.Rmd",
     output_file = "testV3_OR.pdf",
     params = list(collectorName = "Lisa Robinson",
-                  state = "OR")
+                  state = "OR", 
+                  year = "2023")
   )
-  
-  
-#load('Robinson/Data/cleanedV3.Rdata') # or load('Data/cleaned.Rdata')
-
-# rmarkdown::render(
-#   input = "Robinson/templateSheetV3_TESTING.Rmd",
-#   output_file = "testV3_OR.pdf",
-#   params = list(collectorName = "Lisa Robinson", 
-#                 state = "OR")
-# )
-
-# rmarkdown::render(
-#   input = "Robinson/templateSheetV3.Rmd",
-#   output_file = "MichaelO'Loughlin_Report_2023.pdf",
-#   params = list(collectorName = "Michael O'Loughlin")
-# )
-# 
-# rmarkdown::render(
-#   input = "Robinson/templateSheetNewFormat25_no2023.Rmd",
-#   output_file = "ad_Report_2023.pdf",
-#   params = list(collectorName = "Bonnie Shoffner")
-# )
-#readLines('templateSheet.Rmd') #Rmarkdown
   
 # List volunteers for making all reports ---- 
 
@@ -94,18 +77,11 @@ reports <- tibble(
 # 
 toRun <- reports %>% filter(row_number()%in%1)
 
-dat %>% filter(samplingProtocol%in%"aerial net") %>%  
-  st_drop_geometry %>% 
-  filter(year== 2023) %>% 
-  filter(str_detect(collector, "\\|")) %>% 
-    filter(!is.na(genus)) %>% 
-  group_by(collector, genSpp) %>% 
-  summarise(n())
-
 # might be faster to do: 
 
 # TODO - do we remove obs without IDs at the start, or produce blank reports?
 
+# finding number of catches in each year
 caughtAll <- dat %>% st_drop_geometry() %>% 
   filter(!is.na(genus)) %>% filter(!is.na(family)) %>% # do pre filtering here - only bees ided to genus or family
   filter(samplingProtocol == "aerial net") %>% # only netted bees
@@ -113,12 +89,13 @@ caughtAll <- dat %>% st_drop_geometry() %>%
   group_by(collector, year) %>%
   summarise(n = n()) %>% 
   pivot_wider(names_from = year, values_from = n, values_fill = 0) %>% 
-  pivot_longer(cols = `2019`:`2017`, values_to = "nCaught", names_to = "year")
+  pivot_longer(cols = `2024`:`2017`, values_to = "nCaught", names_to = "year")
 
+# for running 2023 by itself
 caught23 <- caughtAll %>% ungroup() %>% 
   filter(year%in%2023)
 
-# make named list of parameters for r markdown params - one for 2023 observers, one for not
+# make named list of parameters for r markdown params - one for those with observations in 2023, one for those with 0
 
 # None 2023 ---------------------------------------------------------------
 
@@ -126,34 +103,29 @@ none2023 <- caught23 %>%
   filter(nCaught < 1) %>% 
   dplyr::select(collector)
 
-no23dat <- dat %>% semi_join(none2023) #no 23 obs
+no23dat <- dat %>% semi_join(none2023) # get subset of dat observers with no 2023 observations
 
-volNamesNo23 <- tibble(names=unique(no23dat$collector)) # name options no 23
+volNamesNo23 <- tibble(names=unique(no23dat$collector)) # name of observers with no 2023 obs. 
 
-# reportsNo23 <- tibble( 
-#   collec = tibble(names=unique(no23dat$collector)),
-#   filename = stringr::str_c(str_replace_all(collec$names, " ", "_"), "_Summary.pdf"),
-#   params = purrr::map(collec, ~ list(collectorName = .)))
+# code for confirming reports for observers with vertical separator in collector name are working
+# rpVert <- no23dat %>% filter(str_detect(string = collector, pattern = "\\|")) 
+# 
+# rpVertRep23 <- tibble( input = "Robinson/templateSheetNewFormat25_no2023.Rmd",
+#                        collec = tibble(names = unique(rpVert$collector)),
+#                        output_file = stringr::str_c("noneReports/", str_replace_all(collec$names, " ", "_"), "_Summary2023.pdf"),
+#                        params = purrr::map(collec$names, ~ list(collectorName = .)))
+# 
+# # extra step to deal with vertical lines in names
+# rpVertRep23 %>% mutate(output_file = str_replace(output_file, "\\|", "and")) %>% 
+#   dplyr::select(!collec) %>% pwalk(.f = rmarkdown::render)
 
-rpVert <- no23dat %>% filter(str_detect(string = collector, pattern = "\\|")) #%>% 
-
-# netOnly<- rpVert %>% filter(samplingProtocol %in% "aerial net")
-rpVertRep23 <- tibble( input = "Robinson/templateSheetNewFormat25_no2023.Rmd",
-                       collec = tibble(names = unique(rpVert$collector)),
-                       output_file = stringr::str_c("noneReports/", str_replace_all(collec$names, " ", "_"), "_Summary2023.pdf"),
-                       params = purrr::map(collec$names, ~ list(collectorName = .)))
-
-# extra step to deal with vertical lines in names
-rpVertRep23 %>% mutate(output_file = str_replace(output_file, "\\|", "and")) %>% 
-  dplyr::select(!collec) %>% pwalk(.f = rmarkdown::render)
-
-reportsNo23 <- tibble( input = "Robinson/templateSheetNewFormat25_no2023.Rmd",
+reportsNo23 <- tibble( input = "Robinson/templateSheetNewFormat25_no2023.Rmd", # this is not updated to V3 yet
                          collec = tibble(names=unique(no23dat$collector)),
                          output_file = stringr::str_c("noneReports/", str_replace_all(collec$names, " ", "_"), "_Summary2023.pdf"),
                          params = purrr::map(collec$names, ~ list(collectorName = .)))
 
-reportsNo23 %>% filter(!str_detect(string = output_file, pattern = "\\|")) %>% 
-  dplyr::select(!collec) %>% pwalk(.f = rmarkdown::render)
+reportsNo23 %>% mutate(output_file = str_replace(output_file, "\\|", "and")) %>% 
+  dplyr::select(!collec) %>% pwalk(.f = rmarkdown::render) # need to create folder when you want to run this for real
 
 #jsonlite::write_json(reportsNo23$output_file, "Robinson/no2023beefiles.JSON")
 # Some 2023 ---------------------------------------------------------------
@@ -162,6 +134,7 @@ some2023 <- caught23 %>%
   filter(nCaught >= 1) %>% 
   dplyr::select(collector)
 
+# quick check that all reports are included in filters
 done <- some2023 %>% rbind(none2023)
 caught23 %>% anti_join(done)
 
@@ -177,12 +150,14 @@ rmarkdown::render(
 some23dat <- dat %>% semi_join(some2023) # some 23 obs 
 volNamesSome23 <- tibble(names=unique(some23dat$collector)) # name options some 23
 
-reportsSome23 <- tibble( input = "Robinson/templateSheetNewFormat25.Rmd",
+reportsSome23 <- tibble( input = "Robinson/templateSheetV3_TESTING.Rmd",
   collec = tibble(names=unique(some23dat$collector)),
-  output_file = stringr::str_c("someReports/", str_replace_all(collec$names, " ", "_"), "_Summary2023.pdf"),
-  params = purrr::map(collec$names, ~ list(collectorName = .)))
+  output_file = stringr::str_c(str_replace_all(collec$names, " ", "_"), "_Summary2023.pdf"),
+  params = purrr::map(collec$names, ~ list(collectorName = .,
+                                           state = "OR", # might be a way to get collec$names to be a combo variable, then have a fxn separating it wider etc.
+                                           year = "2023")))
 
-reportsSome23 %>% dplyr::select(!collec) %>% pwalk(.f = rmarkdown::render)
+reportsSome23[4,] %>% dplyr::select(!collec) %>% pwalk(.f = rmarkdown::render)
 
 #jsonlite::write_json(reportsSome23$output_file, "Robinson/some2023beefiles.JSON")
 # Below here - troubleshooting errors -------------------------------------

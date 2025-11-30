@@ -1,0 +1,194 @@
+---
+title: "maxEnt_Bombus"
+output: html_document
+date: "2025-11-04"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(sf)
+library(wallace)
+library(raster)
+```
+
+## R Markdown
+
+```{r data import}
+# getting data ----
+ load("../Robinson/Data/cleanedV3.Rdata")
+
+# st_write(plant.poll.sf.labels, "pltPolSfLabels4testing.csv", append = FALSE)
+
+# plant.poll.sf.labels <- read_csv("pltPolSfLabels4testing.csv") %>% 
+#   mutate(obsNo =`Observation No.`)
+# 
+# plantPolGeom <- st_read("pltPolSfLabels4testing.shp") %>% 
+#   dplyr::select(ObsrvN_, geometry)
+# 
+# plant.poll.sf.labels %>% left_join(plantPolGeom, by = c("obsNo" = "ObsrvN_"))
+
+
+# might need this later to get only species with more than 20 obs - need to remove genus only spp. too
+# plant.poll.sf.labels %>% group_by(genSpp) %>% 
+#   summarise(n = n()) %>% 
+#   filter(n>20)
+  
+
+## prepping data for split/function use----
+
+datReady <- dat %>% mutate(occID = str_c(collector, "_", verbatimEventDate, "_", genSpp, "_" , row_number())) %>% 
+  st_transform(crs = 4326)
+
+# function to do models for a bunch of spp ----
+
+# mapCenter <- c(-120.4927, 44.1611)
+
+# envs <- envs_worldclim(
+#   bcRes = 2.5, 
+#   bcSel = c('bio01', 'bio02', 'bio03', 'bio04', 'bio05', 'bio06', 'bio07', 'bio08', 'bio09', 'bio10', 'bio11', 'bio12', 'bio13', 'bio14', 'bio15', 'bio16', 'bio17', 'bio18', 'bio19'), 
+#   mapCntr = mapCenter, # Mandatory for 30 arcsec resolution   
+#   doBrick = FALSE)
+
+# plot(subset(envs, 1))
+# 
+# plot(envs)
+
+#writeRaster(envs, "envsRasterStack_2.5.tiff", overwrite = TRUE)
+
+envs <- stack("envsRasterStack_2.5.tiff")
+
+```
+
+```{r}
+source("maxEnt_Fxn.R")
+```
+
+
+## maxent models for Bombus Spp. 
+
+```{r echo=FALSE}
+#debugonce(makeMaxEnt)
+# makeMaxEnt(allOccs = datReady,specState = "OR", specSpp = "Bombus caliginosus", yesNo = TRUE )
+# 
+# makeMaxEnt(allOccs = datReady, specSpp = "Bombus caliginosus", yesNo = TRUE)
+# 
+# makeMaxEnt(allOccs = datReady, specSpp = "Bombus vosnesenskii")
+ 
+# makeMaxEnt(allOccs = datReady %>% filter(genSpp %in% "Bombus caliginosus"))
+
+listTest <- datReady %>% 
+  #filter(state %in% c("WA", "ID")) %>% 
+  filter(genus %in% "Bombus") %>% filter(!is.na(genSpp)) %>% 
+  group_by(genSpp) %>% mutate(n= n()) %>% 
+  filter(n>25) %>% ungroup() %>% 
+  split(~genSpp) 
+
+# maps <- listTest %>%
+#   map(\(x) makeMaxEnt(x))
+
+# TRY CERATINA NEXT 
+
+
+```
+```{r, echo=FALSE}
+maps[[1]]
+```
+
+
+```{r, echo=FALSE}
+try(maps[[2]]) 
+```
+
+
+```{r, echo=FALSE}
+try(maps[[3]] )
+```
+
+
+```{r, echo=FALSE}
+try(maps[[4]] )
+```
+
+
+```{r, echo=FALSE}
+try(maps[[5]] )
+```
+
+
+```{r, echo=FALSE}
+try(maps[[6]] )
+```
+
+
+```{r, echo=FALSE}
+try(maps[[7]] )
+```
+
+
+```{r, echo=FALSE}
+try(maps[[8]] )
+```
+
+
+```{r, echo=FALSE}
+try(maps[[9]] )
+```
+
+```{r, echo=FALSE}
+try(maps[[10]] )
+```
+
+
+```{r, echo=FALSE}
+try(maps[[11]] )
+```
+
+
+```{r, echo=FALSE}
+try(maps[[12]] )
+```
+
+
+```{r, echo=FALSE}
+try(maps[[13]] )
+```
+
+
+```{r, echo=FALSE}
+try(maps[[14]] )
+```
+
+```{r, echo=FALSE}
+try(maps[[15]] )
+```
+
+
+```{r, echo=FALSE}
+try(maps[[16]] )
+```
+
+
+```{r, echo=FALSE}
+try(maps[[17]] )
+```
+
+
+```{r, echo=FALSE}
+try(maps[[18]] )
+```
+
+
+```{r, echo=FALSE}
+try(maps[[19]] )
+```
+
+
+```{r, echo=FALSE}
+try(maps[[20]] )
+```
+
+
+```{r, echo=FALSE}
+try(maps[[21]] )
+```
