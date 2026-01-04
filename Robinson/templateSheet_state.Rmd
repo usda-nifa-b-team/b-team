@@ -1,0 +1,367 @@
+---
+output:
+  pdf_document:
+    fig_caption: yes
+    keep_tex: false
+params: 
+  state: ""    
+title: "`r params$state` Summary Sheet"
+author: "Oregon Bee Atlas"
+
+
+geometry: margin=2cm
+header-includes:
+- \usepackage{booktabs}
+- \usepackage{longtable}
+- \usepackage{array}
+- \usepackage{multirow}
+- \usepackage{wrapfig}
+- \usepackage{float}
+- \usepackage{colortbl}
+- \usepackage{pdflscape}
+- \usepackage{tabu}
+- \usepackage{threeparttable}
+- \usepackage{threeparttablex}
+- \usepackage[normalem]{ulem}
+- \usepackage{makecell}
+- \usepackage{xcolor}
+---
+
+```{r setup, include=FALSE}
+#OREGON BEE ATLAS STATE SUMMARY PDFs
+#WRITTEN BY ROWAN RAMPTON 2025, adapted from Sam Robinson Project Summary script
+library(knitr)
+library(kableExtra)
+library(tidyverse)
+library(ggpubr)
+library(RColorBrewer)
+library(sf)
+library(ggspatial) #library(ggsn) replaced
+library(shadowtext)
+library(tidyverse)
+library(dplyr)
+library(iNEXT) 
+library(cowplot)
+
+#knitr options
+opts_chunk$set(echo = FALSE, eval = TRUE, warning = FALSE, message = FALSE)
+opts_knit$set(eval.after = "fig.cap")
+options(dplyr.summarise.inform=FALSE, warn=-1) #Suppress warnings
+theme_set(theme_classic())
+```
+
+```{r flora list, include=FALSE}
+# uses this list to check oregon species for exoticness https://oregonflora.org/pages/taxonomic-checklist.php
+
+orFlora <- read_csv("data/OR_FloraList.csv", locale = locale(encoding = "UTF-8")) %>% 
+  rename(plantGenSpp = Scientific_name) %>% 
+  separate_wider_delim(plantGenSpp, names = c("gen", "spp"), delim = " ", too_many = "merge", cols_remove = FALSE) %>%
+  separate_wider_delim(cols = Origin, names = c("orig1", "orig2"), delim = ", ", too_many = "merge", too_few = "align_start")
+
+genusCertainty <- orFlora %>% filter(!is.na(orig1)) %>% group_by(gen) %>% 
+  summarise(origins = paste0(unique(orig1), collapse = "___"), 
+            n = n_distinct(orig1)) %>% 
+  mutate(origins = case_when(
+    n == 1 ~ origins, 
+    n!= 1 ~ "Uncertain"
+  ))
+
+# datFlora <- dat %>% st_drop_geometry() %>% left_join(orFlora %>% filter(Name_Status %in% "Accepted")) %>% 
+#   left_join(genusCertainty %>% select(!n)) %>% 
+#   mutate(orig1 = case_when(
+#     !is.na(orig1) ~ orig1, 
+#     is.na(orig1) ~ origins
+#   ))
+```
+
+
+```{r setup datSt, include=FALSE}
+# filter to state
+
+datSt <- dat %>% 
+   st_join(ecoRegSimplified %>% select(STUSPS, geometry), st_within) %>% 
+  filter(STUSPS%in% params$state) %>% # fixes the out of state points for now
+select(!STUSPS) %>% 
+  filter(!is.na(genSpp)) %>% # no missing bee IDs currently - this is built into downstream code already 
+  left_join(orFlora %>% filter(Name_Status %in% "Accepted") %>% select(plantGenSpp, orig1, gen)) %>% 
+  left_join(genusCertainty %>% select(!n)) %>%# add flora list - if species don't match, they get assigned a genus level
+  mutate(orig1 = case_when( 
+    !is.na(orig1) ~ orig1, 
+    is.na(orig1) ~ origins # genus level status can be uncertain (both native and exotic in genus)
+  )) %>% 
+  mutate(orig1 = case_when(
+    plantGenSpp %in% "Rubus bifrons" ~ "exotic",
+    is.na(orig1) ~ "mixed" ,
+    .default = orig1
+  ))
+```
+
+
+```{r setup fxns, include=FALSE}
+## Statewide Summary Setup ----
+
+## Functions ---- 
+
+# OR use params for state? Simplifies function, allows multiple plots
+addChao2State <- function(df, state2do, varName = county){ # default is county, use "name" for ecoreg
+  
+  datMat <- df %>% 
+    filter(state %in% state2do) %>% # only one state at a time
+    st_drop_geometry() %>% 
+    select({{varName}}, genSpp) %>% 
+    filter(!is.na(genSpp)) %>% 
+    group_by({{varName}}, genSpp) %>% 
+    count() %>% 
+    pivot_wider(values_from = n, names_from = {{varName}}, values_fill = 0) %>% 
+    column_to_rownames(var = "genSpp") # make into matrix with each col a county, rows are spp
+  
+  if(as.character(ensym(varName)) == "county"){
+  chaoDat <- as_tibble(iNEXT::ChaoRichness(datMat) %>% # turn output into workable format
+                         rownames_to_column(var = "altName")) %>% # altname = county 
+    rename_with(make.names, everything()) # fix names
+  
+  countyRichEst <- usCountiesW %>% filter(STUSPS %in% state2do) %>% 
+    left_join(chaoDat, by = c("altName")) # Add to state boundaries
+  return(countyRichEst)
+  
+  }else
+  {
+   chaoDat <- as_tibble(iNEXT::ChaoRichness(datMat) %>% # turn output into workable format
+                         rownames_to_column(var = "name")) %>% # name = ecoreg 
+    rename_with(make.names, everything()) 
+   
+   countyRichEst <- stateEcoReg %>% filter(STUSPS %in% state2do) %>% 
+    left_join(chaoDat, by = c("name")) # Add to state boundaries
+  return(countyRichEst)
+  }
+  
+}
+
+```
+
+
+```{r setup map plot fxns, include=FALSE}
+actualStateRich <- function(df){
+  return(ggplot(df)+
+    geom_sf(aes(fill = Observed))
+    
+    )
+  #+)
+  #geom_shadowtext() # add number actual 
+}
+
+estStateRich <- function(df){
+  return(ggplot(df)+
+           geom_sf(aes(fill = Estimator))
+         
+         )
+  #+)
+  #geom_shadowtext() # add number actual 
+}
+
+gapStateRich <- function(df){
+  return(ggplot(df)+
+           geom_sf(aes(fill = (Estimator-Observed)))+
+    labs(fill = "Est. - Obs.")
+  )
+  #+)
+  #geom_shadowtext() # add number actual 
+}
+
+gapStateRich_focus <- function(df){
+  return(ggplot(df)+
+           geom_sf(aes(fill = (Estimator-Observed)), alpha = 0)+
+    labs(fill = "Est. - Obs.")
+  ) 
+}
+```
+
+```{r setup chao state, include=FALSE}
+#debugonce(addChao2State)
+stateChao <- addChao2State(datSt, state2do = params$state )
+```
+
+
+```{r setup - ecoreg, include=FALSE}
+## ecoregion summary setup ---- 
+
+datEcoR <- datSt %>% # match ecoreg to pnts
+  st_join(ecoRegSimplified, st_within) #%>% 
+  #filter(STUSPS%in% params$state) # fixes the out of state points for now
+
+# get only ecoregions within state 
+stateEcoReg <- ecoRegSimplified %>% 
+  filter(STUSPS%in% params$state) %>% 
+  group_by(L3_KEY) %>% 
+  mutate(ecorArea = st_area(geometry))
+
+# some are just outside (showing up in water probably, or minor CRS diffs) - for now just used st_nearest, might not be perfect
+datEcoR_nearest <- datSt %>% semi_join(datEcoR %>% filter(is.na(L3_KEY)) %>% st_drop_geometry()) %>% 
+  st_join(ecoRegSimplified, st_nearest_feature) # %>% filter(is.na(L3_KEY))
+
+datEcoR <- datEcoR %>% # add ones back in that needed it
+  anti_join(datEcoR_nearest %>% st_drop_geometry(), 
+            join_by(collector, day, month, year, verbatimEventDate, country, state, county, locality, phylumPlant, orderPlant,
+                    familyPlant, genusPlant, plantGenSpp, taxonRankPlant, familyVolDet, genusVolDet, specificEpithetVolDet, sexVolDet, casteVolDet, genus,
+                    species, taxonomist, sex, caste, samplingProtocol, date, volunteerGenSpp, genSpp, family)) %>% 
+  rbind(datEcoR_nearest)
+
+
+```
+
+
+```{r, include=FALSE}
+# can check that data going into ecoreg and county is the same
+
+# nrow(datEcoR)
+# nrow(datEcoR %>% filter(STUSPS%in% params$state) )
+
+```
+
+
+\section{State Totals}
+
+```{r, include=FALSE}
+sppList <- datSt %>% st_drop_geometry() %>% 
+  group_by(genSpp) %>% 
+  count() 
+
+nSpp <- sppList %>% 
+  nrow()
+
+nObs <- datSt %>% st_drop_geometry() %>% nrow()
+nCol <- datSt %>% st_drop_geometry() %>% group_by(collector) %>% summarise() %>% nrow()
+nPlntSpp <- datSt %>% st_drop_geometry() %>% group_by(plantGenSpp) %>% summarise() %>% nrow()
+  
+```
+
+A total of `r nSpp` bee taxa have been observed in `r params$state`. There have been a total of `r nObs` observations in the state, observed visiting `r nPlntSpp` plant taxa, which have been collected by `r nCol` collectors.
+
+\section{State Species List - example of first 10 rows for now}
+```{r}
+sppList <- slice_head(sppList %>% ungroup(), n = 10 )
+kable(sppList)
+```
+
+
+```{r, include=FALSE}
+#TODO - DONE - right now species numbers are without genus spp., chao estimates are with genus spp. - need to resolve
+ # actually problem is that species numbers exclude missing plants - fixed for now, see notes in renderRmdV3
+```
+
+```{r, fig.height= 10, fig.cap= "Observed Species in Each County."}
+actP <- actualStateRich(stateChao)+
+  scale_fill_gradient2(low = "white", 
+                       mid = '#f1eef6',
+                       high = '#045a8d')
+
+
+```
+\newpage
+\section{State Sampling Needs}
+Areas with large differences between estimated species richness and observed species richness are ideal locations for additional sampling. More sampling in these areas has the potential to produce additional species, and improve confidence in measures of species diversity. 
+
+```{r, fig.height=6, fig.cap= "Difference between estimated and observed species richness. Larger numbers indiciate that more species are yet to be detected." }
+gapP <- gapStateRich(stateChao)+
+  scale_fill_gradient2(low = "white", 
+                       mid = '#ffffcc',
+                       high = '#bd0026')
+
+plot_grid(actP, gapP, nrow = 2)
+```
+\newpage
+\section {State Counties - Summary}
+The table below shows specimens collected, species present, and collectors in each county. 
+```{r}
+countySummaryTable <- datSt %>% semi_join(allCounty %>% st_drop_geometry() %>% filter(STUSPS %in% params$state), by = c("county" = "altName")) %>%   
+  st_drop_geometry() %>% 
+  group_by(county) %>% 
+  summarise(`Bee Species` = n_distinct(genSpp), 
+            `Plant Species` = n_distinct(plantGenSpp), 
+            `Bees Collected` = n(), 
+            Collectors = n_distinct(collector))
+
+kable(countySummaryTable)
+```
+\newpage
+Individual county totals are summarized below
+```{r, include=FALSE}
+child_section_title <- ""
+
+county2make <- orCounties %>% 
+  st_drop_geometry() %>% 
+  group_by(altName) %>% summarise() %>%
+  pull(altName)
+county2make <- county2make[1:3] # TODO - for speed during testing, remove later
+```
+
+```{r}
+knit_child_with_params_county <- function(x){
+  child_section_title <- x
+  
+  knitr::knit_child(
+    "stateCountyChild.Rmd", 
+    envir = environment(),
+    , quiet = TRUE) }
+```
+
+```{r, results = 'asis', warning=FALSE}
+resC <- lapply(county2make, knit_child_with_params_county)
+```
+```{r, results = 'asis',  warning=FALSE}
+cat(unlist(resC), sep = "\n")
+```
+
+\newpage
+\section{State Ecoregions - Summary}
+
+```{r chao for ecoregions, include=FALSE}
+# debugonce(addChao2State)
+stateChao_ecoreg <- addChao2State(datEcoR, state2do = params$state, varName = name )
+```
+
+```{r}
+ecoRegArea <- datEcoR %>%   
+  st_drop_geometry() %>% 
+  group_by(NA_L3NAME) %>% 
+  summarise(`Bee Species` = n_distinct(genSpp), 
+            `Plant Species` = n_distinct(plantGenSpp), 
+            `Bees Collected` = n(), 
+            Collectors = n_distinct(collector)) 
+
+kable(ecoRegArea)
+```
+
+\newpage
+Individual ecoregions are summarized below
+```{r, include=FALSE}
+child_section_title <- ""
+
+ecor2make <- stateEcoReg %>% 
+  st_drop_geometry() %>% 
+  group_by(name) %>% summarise() %>%
+  pull(name)
+
+ecor2make <- ecor2make[1:3] # TODO - for speed during testing, remove later
+```
+
+```{r}
+knit_child_with_params <- function(x){
+  child_section_title <- x
+  
+  knitr::knit_child(
+    "stateEcoregChild.Rmd", 
+    envir = environment(),
+    , quiet = TRUE) }
+```
+
+```{r, results = 'asis', warning=FALSE}
+res <- lapply(ecor2make, knit_child_with_params)
+```
+```{r, results = 'asis',  warning=FALSE}
+cat(unlist(res), sep = "\n")
+```
+
+```{r}
+options(warn=0) #Turn warnings back on
+```

@@ -160,9 +160,33 @@ reportsSome23 <- tibble( input = "Robinson/templateSheetV3_TESTING.Rmd",
 reportsSome23[4,] %>% dplyr::select(!collec) %>% pwalk(.f = rmarkdown::render)
 
 #jsonlite::write_json(reportsSome23$output_file, "Robinson/some2023beefiles.JSON")
+
+# STATE SUMMARIES RMD ----
+
+load('Robinson/Data/cleanedV3.Rdata') # or original: load('Data/cleaned.Rdata')
+
+rmarkdown::render(
+  input = "Robinson/templateSheet_state.Rmd",
+  output_file = "test_stateOutput.pdf",
+  params = list(state = "OR")
+)
+
+
 # Below here - troubleshooting errors -------------------------------------
+# TODO - organize currently removes points out of state - some on coast likely could be included
+# TODO - organize currently rewrites county names - 9000 right now
+# TODO - did hacky fix - removed st joined points not in correct state, underlying issues would ideally get fixed in data 
 
 # debugonce(abundPlots)
+
+# some points coming up as in puget sound - wrong locations? 
+# library(leaflet)
+# dat %>% 
+#   filter(str_detect(locality, "Grants Pass, Raptor")) %>%
+#   st_transform(crs = 4326) %>% 
+#   leaflet() %>% 
+#   addCircleMarkers() %>% 
+#   addProviderTiles("Esri.WorldImagery")
 
 dat1 <- dat %>%
   filter(samplingProtocol == "aerial net") %>% # remove non netted specimens

@@ -429,7 +429,9 @@ usCountiesW <- usCounties %>%
          stateName,
          STUSPS,
          geometry) %>% 
-  st_transform(3643) %>%  #Transform to Oregon Lambert
+  st_transform(3643)  #Transform to Oregon Lambert
+
+  usCountiesW <- usCountiesW %>% 
   mutate(nRecords=sapply(st_contains(.,dat),length), #Number of bee specimens per county
          nFlwGenera=sapply(st_contains(.,dat),function(x) length(unique(na.omit(dat$genusPlant[x])))))
 
@@ -450,7 +452,25 @@ bcRegions <- st_read("Robinson/Shapefiles/bcPoly/ABMS_LGL_ADMIN_AREAS_SVW/ABMS_L
 
 bcBorder <- st_read("Robinson/Shapefiles/bcProv/ABMS_PROVINCE_SP/ABMS_PROV_polygon.shp")
 
-allCounty <- usCountiesW %>% rbind(bcRegions)
+allCounty <- usCountiesW %>% rbind(bcRegions) 
+
+# checking state is correct for point locations   
+stateMatch <- dat %>% 
+  st_join(allCounty, st_within) %>% 
+  mutate(stateMatch = (state == STUSPS)) %>% 
+  filter(stateMatch!=TRUE)
+
+if(nrow(stateMatch)>0){
+  warning("These records have been removed because their recorded state does not match their point's location")
+  stateMatch %>% st_drop_geometry() %>% 
+    select(collector:year, country:locality, instName, stateName, STUSPS)
+}
+dat <- dat %>% anti_join(stateMatch %>% st_drop_geometry()) 
+
+# redo with updated data 
+allCounty <- allCounty %>% 
+  mutate(nRecords=sapply(st_contains(.,dat),length), #Number of bee specimens per county
+         nFlwGenera=sapply(st_contains(.,dat),function(x) length(unique(na.omit(dat$genusPlant[x])))))
 
 ## basic checks for success
 # ggplot()+
@@ -501,7 +521,8 @@ countyMatch <- sapply(st_within(dat,allCounty),function(x) x) #Get county indice
 if(any(!sapply(countyMatch,length)!=0)){
   warning(paste0(sum(!sapply(countyMatch,length)!=0),' samples located outside of ', str_flatten(includedStates, collapse = ", "), " and British Columbia discarded"))
   # ggplot()+ geom_sf(data=orCounties)+ #Map of samples outside Oregon
-  #   geom_sf(data=filter(dat,sapply(countyMatch,length)==0))
+  #   geom_sf(data=filter(dat,sapply(countyMatch,length)==0))+
+  #   geom_sf(data = usStates)
   dat <- dat %>% filter(sapply(countyMatch,length)!=0)
 }
 
@@ -516,6 +537,7 @@ if(any(sum(dat$county!=allCounty$altName[unlist(countyMatch)]))){
   dat$county <- allCounty$altName[unlist(countyMatch)]
 }
 rm(countyMatch) # trying to minimize storage size
+
 #Record singleton species for "awards" (only 1 specimen found)
 singles <- dat %>% st_drop_geometry() %>% group_by(genSpp) %>%
   summarize(n=n(),collector=first(collector)) %>%
@@ -538,6 +560,8 @@ if(any(apply(st_drop_geometry(dat),2,function(x) any(grepl('  ',sort(unique(x)))
 
 #TODO add column that splits east and west of cascades by ecoregion
 
-#Save data to Rdata file
-save.image('Robinson/Data/cleanedV3.Rdata') #Cleaned data + helper function
+# save space 
+rm(dat1)
 
+#Save data to Rdata file
+save.image('Robinson/Data/cleanedV3.Rdata') #Cleaned data + helper functions

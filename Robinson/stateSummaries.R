@@ -26,8 +26,8 @@ load('Robinson/Data/cleanedV3.Rdata') # or load('Data/cleaned.Rdata')
 datSt <- dat %>% 
   filter(state %in% "WA")
 
-datSt %>% 
-  group_by(genSpp)
+# datSt %>% 
+#   group_by(genSpp)
 ## Statewide Richness ----
 # convert to matrix for inext - county level?
 
@@ -58,8 +58,6 @@ ggplot(countyRichEst)+
 
 # OR use params for state? Simplifies function, allows multiple plots
 stateSummaries <- function(df, state2do = "WA"){
-  
-  
 }
 
 

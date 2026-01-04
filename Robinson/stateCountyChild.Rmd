@@ -1,0 +1,96 @@
+---
+title: "County (State Child)"
+author: "Rowan R"
+date: "2025-12-27"
+output: pdf_document
+---
+
+```{r, include=FALSE}
+### functions ----
+perPlnt_df_county <- function(df){ # number bees, species per plant 
+  perPlnt <- df %>% 
+    group_by(county, plantGenSpp, orig1) %>% # replaced name (ecoregion) with county
+    summarise(nBees = sum(n),
+              nBeeSpp = n_distinct(genSpp), 
+              beeSpp = paste0(genSpp, collapse = ", "))
+  return(perPlnt) 
+}
+
+top10 <- function(df, varName){
+  dO <- df %>% 
+    arrange(desc({{varName}})) %>% 
+    head(n = 10)
+  return(dO)
+}
+```
+
+```{r, include=FALSE, warning=FALSE}
+
+singleCount <- datSt %>% 
+  filter(county %in% x) 
+
+singleCountNoMissing <- singleCount %>% st_drop_geometry() %>% 
+  filter(!is.na(genSpp)) %>% 
+  filter(!is.na(plantGenSpp))
+
+# Only use this data for doing interactions, not species overall etc. since males are removed
+singleCountInt <- singleCountNoMissing %>% 
+  filter(!is.na(genSpp)) %>% 
+  filter(!is.na(plantGenSpp)) %>% 
+  filter(!sex %in% c("Male", "male")) %>% # removing males for now - not informative for pollen
+  group_by(county, genSpp, plantGenSpp, orig1) %>% # might adjust this later - using plant genus
+  count()
+
+singleCountPerPlnt <- perPlnt_df_county(singleCountInt) 
+
+```
+
+## County: `r x`
+```{r, include=FALSE, warning=FALSE}
+nSppB_c <- n_distinct(singleCount$genSpp)
+
+nSppP_c <- n_distinct(singleCountNoMissing$plantGenSpp)
+
+sppInts <- singleCountNoMissing %>% mutate(ints = str_c(genSpp, "-", plantGenSpp))
+nInts_c <- n_distinct(sppInts$ints)
+
+```
+
+Total Bee Species: `r nSppB_c`
+
+Total Plant species: `r nSppP_c`
+
+Total Bee-Plant Interactions: `r nInts_c`
+
+Top Plant Genera For Bee Richness:
+```{r, echo=FALSE}
+kable(slice_head(singleCountPerPlnt %>% arrange(desc(nBeeSpp)) %>%ungroup() %>% select(!c(county, beeSpp)), n = 10))
+```
+
+```{r}
+# side by side per county? with county highlighted
+county2highlight <- stateChao %>% filter(altName %in% x) %>% 
+  mutate(gap = as.character(round(Estimator - Observed), 0))
+```
+
+
+```{r, fig.height=9}
+plot_grid(
+actualStateRich(stateChao)+
+  scale_fill_gradient2(low = "white", 
+                       mid = '#f1eef6',
+                       high = '#045a8d')+
+  geom_sf(data = county2highlight, colour = "green", alpha = 0, size = 1)+
+    geom_sf_text(data = county2highlight, aes(label = Observed), size = 2)+
+    labs(x = "", y = "") , 
+gapStateRich(stateChao)+
+  scale_fill_gradient2(low = "white", 
+                       mid = '#ffffcc',
+                       high = '#bd0026')+
+  geom_sf(data = county2highlight, colour = "green", alpha = 0, size = 1)+
+  geom_sf_text(data = county2highlight, aes(label = gap), size = 2)+
+  labs(x = "", y = ""),
+
+nrow = 2
+)
+```

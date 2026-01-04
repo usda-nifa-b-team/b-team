@@ -1,0 +1,97 @@
+---
+title: "Ecoregion (State Child)"
+author: "Rowan R"
+date: "2025-12-07"
+output: pdf_document
+---
+
+```{r, include=FALSE}
+### functions ----
+perPlnt_df <- function(df){
+  perPlnt <- df %>% 
+   # filter(name %in% ecor) %>% 
+    group_by(name, plantGenSpp, orig1) %>% 
+    summarise(nBees = sum(n),
+              nBeeSpp = n_distinct(genSpp), 
+              beeSpp = paste0(genSpp, collapse = ", "))
+  return(perPlnt) 
+}
+
+top10 <- function(df, varName){
+  dO <- df %>% 
+    arrange(desc({{varName}})) %>% 
+    head(n = 10)
+  return(dO)
+}
+```
+
+```{r, include=FALSE, warning=FALSE}
+
+singleEco <- datEcoR %>% 
+  filter(name %in% x) 
+
+singleEcoNoMissing <- singleEco %>% 
+  st_drop_geometry() %>% 
+  filter(!is.na(genSpp)) %>% 
+  filter(!is.na(plantGenSpp))
+
+# Only use this data for doing interactions, not species overall etc. since males are removed
+singleEcoInt <- singleEcoNoMissing %>% 
+  filter(!is.na(genSpp)) %>% 
+  filter(!is.na(plantGenSpp)) %>% 
+  filter(!sex %in% c("Male", "male")) %>% # removing males for now - not informative for pollen
+  group_by(name, genSpp, plantGenSpp, orig1) %>% # might adjust this later - using plant genus
+  count()
+
+singleEcoPerPlnt <- perPlnt_df(singleEcoInt) 
+
+```
+
+## Ecoregion: `r x`
+```{r, include=FALSE, warning=FALSE}
+nSppB_e <- n_distinct(singleEco$genSpp)
+
+nSppP_e <- n_distinct(singleEcoNoMissing$plantGenSpp)
+
+sppInts <- singleEcoNoMissing %>% mutate(ints = str_c(genSpp, "-", plantGenSpp))
+nInts_e <- n_distinct(sppInts$ints)
+
+```
+
+Total Bee Species: `r nSppB_e`
+
+Total Plant species: `r nSppP_e`
+
+Total Bee-Plant Interactions: `r nInts_e`
+
+Top Plant Genera For Bee Richness:
+```{r, echo=FALSE}
+kable(slice_head(singleEcoPerPlnt %>% arrange(desc(nBeeSpp)) %>%ungroup() %>% select(!c(name, beeSpp)), n = 10))
+```
+
+```{r}
+# side by side per county? with county highlighted
+ecor2highlight <- stateChao_ecoreg %>% filter(name %in% x) %>% 
+  mutate(gap = as.character(round(Estimator - Observed), 0))
+```
+
+```{r, fig.height=9}
+plot_grid(
+actualStateRich(stateChao_ecoreg)+
+  scale_fill_gradient2(low = "white", 
+                       mid = '#f1eef6',
+                       high = '#045a8d')+
+  geom_sf(data = ecor2highlight, colour = "green", alpha = 0, size = 1)+
+    geom_sf_text(data = ecor2highlight, aes(label = Observed), size = 2)+
+    labs(x = "", y = "") , 
+gapStateRich(stateChao_ecoreg)+
+  scale_fill_gradient2(low = "white", 
+                       mid = '#ffffcc',
+                       high = '#bd0026')+
+  geom_sf(data = ecor2highlight, colour = "green", alpha = 0, size = 1)+
+  geom_sf_text(data = ecor2highlight, aes(label = gap), size = 2)+
+  labs(x = "", y = ""),
+
+nrow = 2
+)
+```
