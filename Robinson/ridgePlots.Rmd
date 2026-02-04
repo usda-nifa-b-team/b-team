@@ -1,0 +1,650 @@
+---
+title: "PhenologyRidgePlots"
+author: "Rowan R"
+date: "2026-01-10"
+output: pdf_document
+---
+Adapted from https://github.com/andersonrm/BeeSearch/blob/main/analyses/ridge_plots.Rmd
+
+```{r}
+library(tidyverse) # Needed for data wrangling: dplyr, tidyr, ggplot2
+library(cowplot) # Needed for publication-quality ggplots
+library(knitr)
+library(ggridges)
+library(sjPlot)
+library(readxl)
+
+Mode <- function(x) {
+  ux <- unique(x)
+  ux[which.max(tabulate(match(x, ux)))]
+}
+```
+
+```{r}
+origDf<- read.csv("Data/CABS1.csv") 
+
+origDf <- origDf %>% 
+  uncount(Count) %>% 
+  mutate(across(c(Station : Sex, Site), as.factor), # convert to factors
+         Date = ymd(Label.Date), # Convert to date
+         Year = year(Date), # Create year column
+         Month = month(Date), # create month column
+         # JD --- Day of year (julian day)
+         JD = yday(Date),
+         # ToY --- Time of Year
+         ToY = case_when(JD < 135 ~ "early",
+                         JD > 205 ~ "late",
+                         TRUE ~ "mid"),
+         # Create a station/year column for grouping
+         StationYear = paste(Station, Year, sep = "_")) %>% 
+  filter(Station != "",
+         Site != "") %>% # remove empty station & site records
+  # convert M/F to male/female to avoid "F = FALSE" misinterpretation
+  mutate(Sex = case_when(
+      Sex == "M" ~ "male",
+      Sex == "F" ~ "female",
+      TRUE ~ NA_character_ # Handle any unexpected values
+    )) %>% 
+  # correct misidentification record
+  mutate(Short.label.name = case_when(
+    Short.label.name == "Megachile apicalis" ~ "Megachile rotundata",
+    TRUE ~ as.character(Short.label.name)
+  )) %>% 
+  # correct misindentification sex classification
+  mutate(Sex = factor(case_when(
+    Unique.Specimen.Number == 678 |
+      Unique.Specimen.Number == 679 ~ "male",
+    TRUE ~ as.character(Sex)
+  )))
+
+```
+
+```{r}
+genus.counts <- origDf %>% 
+  select(Genus, Short.label.name) %>% 
+  group_by(Genus) %>% 
+  distinct() %>% 
+  tally(name = "Species")
+
+genus.props <- origDf %>% 
+  group_by(Genus) %>% 
+  tally(name = "Prop") %>% 
+  mutate(prop.abund = Prop/nrow(origDf))
+
+genus <- left_join(genus.counts, genus.props, by = "Genus")
+
+# TODO
+# this is going to need to be fixed with a lookup, not this one off 
+genus <- genus %>% 
+  mutate(family = factor(c(
+    "Halictidae", "Andrenidae", "Megachilidae", "Apidae",
+    "Apidae", "Apidae", "Apidae", "Megachilidae", "Colletidae",
+    "Apidae", "Apidae", "Halictidae", "Megachilidae", "Megachilidae",
+    "Colletidae", "Halictidae", "Megachilidae", "Apidae", "Apidae",
+    "Megachilidae", "Andrenidae", "Halictidae", "Megachilidae",
+    "Apidae"
+  )))
+
+###################
+# color palette
+c24 <- c(
+  "maroon", "#E31A1C", "green4", "#6A3D9A",
+  "#FF7F00", "gold1", "mediumpurple1","skyblue2", "#FB9A99",
+  "palegreen2", "#CAB2D6", "#FDBF6F", "gray70", "khaki2",
+  "dodgerblue2", "orchid1", "deeppink1", "blue1", "steelblue4",
+  "darkturquoise", "green1", "yellow4", "yellow3", "darkorange4"
+)
+
+
+genus_levels <- levels(genus$Genus)
+
+color_mapping <- setNames(c24, genus_levels)
+```
+
+```{r}
+abundance <- origDf %>% 
+  # filter(Short.label.name != "Halictus tripartitus") %>% 
+  group_by(StationYear, Year, Site) %>% 
+  tally()
+  
+# abundance per site by year - in oba probably just need year
+
+abundance %>% 
+  ggplot(aes(x = Year, y = n)) +
+  geom_jitter(width = 0.1, height = 0) +
+  geom_smooth(method = 'lm',
+              alpha = 0.3) +
+  facet_wrap(~Site) +
+  scale_y_continuous(transform = "log10") +
+  theme_bw() +
+  theme(strip.background = element_blank()) +
+  labs(y = "Abundance")
+
+pos_mod1 <- lm(n ~ Year, data = filter(abundance, Site == "POS"))
+
+# plot_model(pos_mod1, type = "diag")
+
+bpf_mod1 <- lm(n ~ Year, data = filter(abundance, Site == "BPF"))
+
+# plot_model(bpf_mod1, type = "diag")
+
+scl_mod1 <- lm(n ~ Year, data = filter(abundance, Site == "SCL"))
+
+# plot_model(scl_mod1, type = "diag")
+
+```
+
+# Genus by time of year
+```{r genus_ridgeplot, echo = F}
+origDf <- origDf %>% select(-Family)
+
+families <- genus %>% select(Genus, family)
+origDf <- left_join(origDf, families, by = "Genus")
+
+genus_records <- origDf %>% 
+  group_by(Genus) %>% 
+  tally() %>% filter(n > 19) %>% 
+  mutate(stars = case_when(n < 50 & n > 20 ~ "*",
+                           n < 100 & n >= 50 ~ "**",
+                           n < 1000 & n >= 100 ~ "***",
+                           n >= 1000 ~ "****"))
+
+dat_ridges <- origDf %>% 
+  semi_join(genus_records, by = "Genus") %>% 
+  mutate(week = week(Date))
+
+
+genus_orders <- dat_ridges %>% 
+  select(Genus, week) %>% 
+  group_by(Genus) %>% 
+  summarise(peak = Mode(week)) %>% 
+  arrange(desc(peak)) %>% 
+  data.frame()
+
+level_order <- genus_orders$Genus
+```
+
+
+```{r genus_ridgeplot plot, echo = F}
+dat_ridges %>% 
+  ggplot(aes(x = week,
+             y = factor(Genus, level = level_order),
+             fill = Genus)) +
+  geom_density_ridges(aes(height = stat(density)),
+                      scale = 5,
+                      rel_min_height = 0.01,
+                      stat = "density",
+                      bw = "bcv") +
+  theme_ridges(grid = F) +
+  scale_fill_manual(values = color_mapping) +
+  theme(legend.position = "none") +
+  scale_x_continuous(breaks = c(10, 20, 30, 40),
+                     labels = c("3 March", "15 May",
+                                "24 July", "3 October")) +
+  labs(x = "", y = "") +
+  geom_vline(xintercept = 12.6,
+             color = "grey50", linetype = "dashed") +
+  geom_vline(xintercept = 25.3,
+             color = "grey50", linetype = "dashed") +
+  geom_vline(xintercept = 38.4,
+             color = "grey50", linetype = "dashed") +
+  annotate(geom = "text", x = 7, y = 23, label = " ") +
+  annotate(geom = "text", x = 9, y = 21.5, label = "Winter",
+           size = 5) +
+  annotate(geom = "text", x = 18, y = 21.5, label = "Spring",
+           size = 5) +
+  annotate(geom = "text", x = 32, y = 21.5, label = "Summer",
+           size = 5) +
+  annotate(geom = "text", x = 41, y = 21.5, label = "Fall",
+           size = 5) +
+  geom_text(data = genus_records, aes(x = 43, y = Genus,
+                                      label = n), size = 3) +
+  theme(axis.text.y = element_text(face = "italic"))
+```
+
+Try with oba data subset 
+```{r, warning=FALSE}
+# toIncl <- read_xlsx("Data/Bombus_data_to_map.xlsx")
+# 
+# all <- read_xlsx("Data/Bombus_data_to_map.xlsx", sheet = "All OR records")
+# 
+# toIncl %>% semi_join(all) # 8600 - replicated below before adding date to group by
+
+# with phenology 
+
+# family-genus table
+
+itis <- read_csv("Data/ITIS_global_bee_taxonomy_lookup_7_28_2025.csv") %>% 
+  dplyr::group_by(genus, family) %>% summarise() %>% ungroup() %>% 
+  mutate(family = as.factor(family))
+
+# overall data 
+
+allOba26 <- read_xlsx("Data/OBA_OSAC_2026.xlsx")
+
+b26_int <- allOba26 %>% 
+  filter(stateProvince %in% "Oregon") %>% 
+  filter(!is.na(specificEpithet)) %>% 
+  filter(genus %in% "Bombus") %>% 
+  select(country:decimalLongitude, phylum:taxonRank, sex, caste, associatedTaxa: verbatimEventDate) 
+
+b26_int2 <- b26_int %>% 
+  group_by(country,          stateProvince,    county,           locality,         decimalLatitude,  decimalLongitude, phylum,          
+class,            order,            family,           genus,            subgenus,         specificEpithet,  taxonRank,       
+ sex,              caste,            associatedTaxa,   samplingProtocol, samplingEffort,   year,             month,           
+ day,              verbatimEventDate) %>% 
+  count() %>% 
+  mutate(n = case_match(samplingProtocol, 
+                        "aerial net"~ n, 
+                        "vane trap" ~ 1, 
+         .default = n)) %>% 
+  arrange(desc(n)) %>% 
+  ungroup() %>% 
+  rename(Count = n)
+
+# allOba26 %>% 
+#   group_by(samplingProtocol) %>% count()
+```
+
+```{r}
+b26 <- b26_int2 %>% 
+  mutate(caste = case_when(
+    caste%in% "worker" & specificEpithet %in%c("insularis", "flavidus") ~ "gyne",# fixing some workers which don't exist for Psithyrus
+    .default = caste ) ) %>% 
+  filter(!specificEpithet %in% "impatiens") %>%  # only one record, makes a blank figure
+  uncount(Count) %>% 
+  mutate(across(c(country : locality, phylum:associatedTaxa), as.factor), # convert to factors
+  date=paste(year,month,day,sep='-'), # no missing year month dates in this data
+  date=as.Date(date,format='%Y-%m-%d'), 
+  Date = date, # make date from individ columns - note done this way to allow for use of full OBA data in future (already has "date") 
+  Year = year(Date), # Create year column
+  Month = month(Date), # create month column
+  JD = yday(Date), # julian date 
+  ToY = case_when(JD < 135 ~ "early", # used their time of year defs
+                         JD > 205 ~ "late",
+                         TRUE ~ "mid"),
+  StationYear = paste(county, Year, sep = "_")) %>% 
+  mutate( Short.label.name = str_c(genus, specificEpithet, " ")) %>% 
+  filter(!is.na(caste))
+    
+    #%>% 
+# NOTE - used county as station
+
+# rest was from original - don't need(?)
+  # filter(county != "",
+  #       Site != "") %>% # remove empty station & site records
+  # # convert M/F to male/female to avoid "F = FALSE" misinterpretation
+  # mutate(Sex = case_when(
+  #     Sex == "M" ~ "male",
+  #     Sex == "F" ~ "female",
+  #     TRUE ~ NA_character_ # Handle any unexpected values
+  #   )) %>% 
+  # correct misidentification record
+  # mutate(Short.label.name = case_when(
+  #   Short.label.name == "Megachile apicalis" ~ "Megachile rotundata",
+  #   TRUE ~ as.character(Short.label.name)
+  # )) %>% 
+  # correct misindentification sex classification
+  # mutate(Sex = factor(case_when(
+  #   Unique.Specimen.Number == 678 |
+  #     Unique.Specimen.Number == 679 ~ "male",
+  #   TRUE ~ as.character(Sex)
+  # )))
+```
+
+```{r}
+makeVar <- function(df, varSplit){
+  
+  var.counts <- df %>% 
+    select({{varSplit}}, Short.label.name) %>% 
+    group_by({{varSplit}}) %>% 
+    distinct() %>% 
+    tally(name = "Species")
+  
+  var.props <- df %>% 
+    group_by({{varSplit}}) %>% 
+    tally(name = "Prop") %>% 
+    mutate(prop.abund = Prop/nrow(b26))
+  
+  var <- left_join(var.counts, var.props, by = join_by({{varSplit}}))
+  
+  return(var)
+}
+
+#debugonce(makeVar)
+#casteTest <- makeVar(b26) # formerly "genus"
+
+#var <- var %>% left_join(itis) #  need to add family later on if you need it 
+
+```
+
+```{r}
+# genus.counts <- b26 %>% 
+#   select(genus, Short.label.name) %>% 
+#   group_by(genus) %>% 
+#   distinct() %>% 
+#   tally(name = "Species")
+# 
+# genus.props <- b26 %>% 
+#   group_by(genus) %>% 
+#   tally(name = "Prop") %>% 
+#   mutate(prop.abund = Prop/nrow(b26))
+# 
+# genus <- left_join(genus.counts, genus.props, by = "genus")
+
+# TODO - DONE ish, depends where it needs to be done
+# for whole OBA data this is going to need to be fixed with a lookup, not this one off 
+
+# itis <- read_csv("Data/ITIS_global_bee_taxonomy_lookup_7_28_2025.csv") %>% 
+#   dplyr::group_by(genus, family) %>% summarise() %>% ungroup() %>% # family-genus table
+#   mutate(family = as.factor(family))
+# 
+# genus <- genus %>% left_join(itis) # simple way to do below programmatically
+# example of original: # mutate(family = factor(c("Halictidae", "Andrenidae", "Megachilidae", "Apidae")))
+
+###################
+# color palette
+
+colourMapping <- function(varDf, var, bombus){
+  if(bombus == TRUE){
+    color_mapping <- c("#E31A1C", "#FDBF6F", "green4")
+    names(color_mapping) <- c("gyne", "worker", "drone")
+  }else{
+  c24 <- c(
+  "maroon", "#E31A1C", "green4", "#6A3D9A",
+  "#FF7F00", "gold1", "mediumpurple1","skyblue2", "#FB9A99",
+  "palegreen2", "#CAB2D6", "#FDBF6F", "gray70", "khaki2",
+  "dodgerblue2", "orchid1", "deeppink1", "blue1", "steelblue4",
+  "darkturquoise", "green1", "yellow4", "yellow3", "darkorange4"
+)
+varLevs <- levels(varDf %>% pull({{var}}))
+  
+color_mapping <- setNames(c24, varLevs)
+ } 
+return(color_mapping)
+}
+
+#color_mapping <- colourMapping(varDf = casteTest, var = caste )
+
+```
+
+# Genus by time of year
+```{r genus_ridgeplot, echo = F}
+# b26 <- b26 %>% select(-family)
+# 
+# families <- genus %>% select(genus, family)
+# b26 <- left_join(b26, families, by = "Genus")
+
+varRecords <- function(df, varSplit){
+  
+  genRec <- df %>% 
+    group_by({{varSplit}}) %>% 
+    tally() %>% #filter(n > 19) %>% 
+  mutate(stars = case_when(n < 50 & n > 20 ~ "*",
+                           n < 100 & n >= 50 ~ "**",
+                           n < 1000 & n >= 100 ~ "***",
+                           n >= 1000 ~ "****"))
+  return(genRec)
+}
+
+# varRec <- varRecords(b26, caste) # formerly genus_records
+
+datRidges <- function(df, varSplit, varRec = varRec){
+  dat_ridges <- df %>% 
+      semi_join(varRec, by = join_by({{varSplit}})) %>% 
+    mutate(week = week(Date))
+  return(dat_ridges)
+}
+
+# dat_ridges <- datRidges(b26, caste)
+
+varOrders <- function(df = dat_ridges, varSplit, bombus){
+  
+if(bombus == T){
+  var_orders <- df %>% 
+  select({{varSplit}}, week) %>% 
+  group_by({{varSplit}}) %>% 
+  summarise(peak = Mode(week)) %>% 
+    mutate(caste = factor(caste, levels = c("gyne", "worker", "drone"))) %>% 
+    data.frame()
+}  else {
+  var_orders <- df %>% 
+  select({{varSplit}}, week) %>% 
+  group_by({{varSplit}}) %>% 
+  summarise(peak = Mode(week)) %>% 
+  arrange(desc(peak)) %>% 
+  data.frame()
+}  
+  return(var_orders)
+}
+
+#var_orders <- varOrders(dat_ridges = dat_ridges, varSplit = caste) # formerly "genus_orders"
+
+levOrder <- function(var_orders, varSplit){
+  level_order <- levels(var_orders %>% pull({{varSplit}}))
+  return(level_order)
+}
+
+# level_order<- levOrder(var_orders = var_orders, varSplit = caste)
+```
+
+
+```{r genus_ridgeplot plot, echo = F}
+
+# TODO 
+# turn this figure into function, maybe put them all into a function?
+ridgePlot1 <- function(df, varSplit){
+  
+  varMade <- makeVar(df, varSplit = {{varSplit}})
+  color_mapping <- colourMapping(varDf = varMade, var = {{varSplit}}, bombus = TRUE ) # using set colour scheme
+  varRec2 <- varRecords(df, {{varSplit}})
+  dat_ridges <- datRidges(df, varRec = varRec2, {{varSplit}})
+  var_orders <- varOrders(dat_ridges, varSplit = {{varSplit}}, bombus = TRUE) # using set order
+  level_order <- levOrder(var_orders = var_orders, varSplit = {{varSplit}})
+  
+  bombSp <-pull(dat_ridges %>% mutate(genSpp = str_c(genus, " ", specificEpithet)) %>% 
+  group_by(genSpp) %>% summarise())
+
+ploti <- dat_ridges %>% select(week, everything()) %>% 
+  ggplot(aes(x = week,
+             y = factor({{varSplit}}, level = level_order),
+             fill = {{varSplit}})) + # varSplit
+  # facet_wrap(~{{varSplit}})+
+  geom_density_ridges(aes(height = stat(density)),
+                      scale = 5,
+                      rel_min_height = 0.01,
+                      stat = "density",
+                      bw = "bcv", alpha = 0.75) +
+  theme_ridges(grid = F) +
+  scale_fill_manual(values = color_mapping) +
+  theme(legend.position = "none")+ #+
+  labs(x = "", y = "") +
+  geom_vline(xintercept = 0, color = "white", linetype = "dashed", alpha = 0)+
+  geom_vline(xintercept = 12.6,
+             color = "grey50", linetype = "dashed") +
+  geom_vline(xintercept = 25.3,
+             color = "grey50", linetype = "dashed") +
+  geom_vline(xintercept = 38.4,
+             color = "grey50", linetype = "dashed") +
+  geom_text(data = varRec2, aes(x = 55, y = {{varSplit}},
+                               label = n), size = 3)+
+  annotate(geom = "text", x = 9, y = 9.5, label = "Winter", # x values are set because they depend on week of year
+           size = 4) +
+  annotate(geom = "text", x = 18, y = 9.5, label = "Spring",
+           size = 4) +
+  annotate(geom = "text", x = 32, y = 9.5, label = "Summer",
+           size = 4) +
+  annotate(geom = "text", x = 41, y = 9.5, label = "Fall",
+           size = 4)+
+      annotate(geom = "text", x = 52/2, y = 10.5, label = bombSp, vjust = 1, fontface = "italic")+
+scale_x_continuous(breaks = c(-20, -10, 0, 10, 20, 30, 40, 50),
+                    labels = c("","", "1 January", "6 March", "15 May",
+                               "24 July", "3 October", "12 December"))
+
+return(ploti)
+}
+
+ridgePlot6 <- function(df, varSplit, topR = FALSE, botR = FALSE){
+  
+  varMade <- makeVar(df, varSplit = {{varSplit}})
+  color_mapping <- colourMapping(varDf = varMade, var = {{varSplit}}, bombus = TRUE )# using set colour scheme
+  varRec2 <- varRecords(df, {{varSplit}})
+  dat_ridges <- datRidges(df, varRec = varRec2, {{varSplit}})
+  var_orders <- varOrders(dat_ridges, varSplit = {{varSplit}}, bombus = TRUE) # using set order
+  level_order <- levOrder(var_orders = var_orders, varSplit = {{varSplit}})
+  
+  bombSp <-pull(dat_ridges %>% mutate(genSpp = str_c(genus, " ", specificEpithet)) %>% 
+  group_by(genSpp) %>% summarise())
+
+ploti <- dat_ridges %>% select(week, everything()) %>% 
+  ggplot(aes(x = week,
+             y = factor({{varSplit}}, level = level_order),
+             fill = {{varSplit}})) + # varSplit
+  # facet_wrap(~{{varSplit}})+
+  geom_density_ridges(aes(height = stat(density)),
+                      scale = 5,
+                      rel_min_height = 0.01,
+                      stat = "density",
+                      bw = "bcv", alpha = 0.75) +
+  theme_ridges(grid = F) +
+  scale_fill_manual(values = color_mapping) +
+  theme(legend.position = "none")+ #+
+  labs(x = "", y = "") +
+  geom_vline(xintercept = 0, color = "white", linetype = "dashed", alpha = 0)+
+  geom_vline(xintercept = 12.6,
+             color = "grey50", linetype = "dashed") +
+  geom_vline(xintercept = 25.3,
+             color = "grey50", linetype = "dashed") +
+  geom_vline(xintercept = 38.4,
+             color = "grey50", linetype = "dashed") +
+  geom_text(data = varRec2, aes(x = 55, y = {{varSplit}},
+                               label = n), size = 3)
+if(topR == TRUE){
+plotO <- ploti+ # if top of group of plots, add the season labels
+  annotate(geom = "text", x = 9, y = 10.75, label = "Winter", # x values are set because they depend on week of year
+           size = 4) +
+  annotate(geom = "text", x = 18, y = 10.75, label = "Spring",
+           size = 4) +
+  annotate(geom = "text", x = 32, y = 10.75, label = "Summer",
+           size = 4) +
+  annotate(geom = "text", x = 41, y = 10.75, label = "Fall",
+           size = 4)+
+      annotate(geom = "text", x = 52/2, y = 9, label = bombSp, vjust = 0, fontface = "italic")+
+  scale_x_continuous(breaks = c(-20, -10, 0, 10, 20, 30, 40, 50),
+                    labels = c("","", "", "", "",
+                               "", "", ""))+
+  coord_cartesian(clip = "off")
+}else if (botR == TRUE){
+  plotO <- ploti+
+          annotate(geom = "text", x = 52/2, y = 9, label = bombSp, vjust = 1, fontface = "italic")+
+ scale_x_continuous(breaks = c(-20, -10, 0, 10, 20, 30, 40, 50),
+                    labels = c("","", "1 January", "6 March", "15 May",
+                               "24 July", "3 October", "12 December"))
+  }else{
+    plotO <- ploti + 
+        annotate(geom = "text", x = 52/2, y = 9, label = bombSp, vjust = 1, fontface = "italic")+
+      scale_x_continuous(breaks = c(-20, -10, 0, 10, 20, 30, 40, 50),
+                    labels = c("","", "", "", "",
+                               "", "", ""))
+  }
+return(plotO)
+}
+
+# ridgePlot1(plots[[22]], varSplit = caste)
+#ridgePlot(b26 %>% filter(specificEpithet %in% "caliginosus"), varSplit = caste)
+
+plots <- b26 %>%
+  split(~specificEpithet) # %>%
+  #map(\(x) ~ridgePlot(.x, varSplit = caste))
+  
+# b27 <- b26 %>% mutate(casteSpp = str_c(specificEpithet, "-", caste)) %>% filter(specificEpithet %in% c("caliginosus", "sylvicola")) 
+#testOut <- ridgePlot(plots[[18]], varSplit = caste, topR = TRUE)
+# ggsave("phenPlot_vos.jpg", testOut, height = 1.75, width = 6.5, dpi = 300)
+
+library(cowplot)
+
+sixPer <- function(listf, range, fileN, notSix){
+  
+o1 <- ridgePlot6(plots[[range[1]]], varSplit = caste, topR = T )
+o2 <- ridgePlot6(plots[[range[2]]], varSplit = caste )
+o3 <- ridgePlot6(plots[[range[3]]], varSplit = caste )
+o4 <- ridgePlot6(plots[[range[4]]], varSplit = caste )
+o5 <- ridgePlot6(plots[[range[5]]], varSplit = caste )
+o6 <- ridgePlot6(plots[[range[6]]], varSplit = caste, botR = T)
+
+cO <- cowplot::plot_grid(o1, NULL, o2, NULL, o3, NULL, o4 ,NULL, o5, NULL, o6, ncol = 1, 
+                               rel_heights = c(1, -0.25, 1, -0.25, 1, -0.25, 1, -0.25, 1, -0.25, 1 )   )
+ggsave( str_c(fileN, ".jpg"), cO, height = 11, width = 7 )  
+}
+
+notSixPer <- function(listf, range){
+mR <- max(range)
+miR <- min(range)
+diff <- mR - miR
+if (miR+1 == mR){
+  "nothing to do"
+}
+else{
+  nonFirst <- (miR+1):(mR-1)
+}
+
+o2 <- NULL
+o3 <- NULL
+o4 <- NULL
+o5 <- NULL
+
+o1 <- ridgePlot6(plots[[miR]], varSplit = caste, topR = T )
+
+try(o2 <- ridgePlot6(plots[[nonFirst[[1]]]], varSplit = caste ))
+try(o3 <- ridgePlot6(plots[[nonFirst[[2]]]], varSplit = caste ))
+try(o4 <- ridgePlot6(plots[[nonFirst[[3]]]], varSplit = caste ))
+try(o5 <- ridgePlot6(plots[[nonFirst[[4]]]], varSplit = caste ))
+oM <- ridgePlot6(plots[[mR]], varSplit = caste, botR = T )
+
+pO <- cowplot::plot_grid(o1, NULL, o2,NULL, oM, NULL, o3, NULL, o4,NULL, o5, 
+                         ncol = 1, 
+                    rel_heights = c(1, -0.25, 1, -0.25, 1, -0.25, 1, -0.25, 1, -0.25, 1 ))
+
+return(pO)
+}
+onePer <- function(df, range, fileName){
+
+  p1 <- ridgePlot1(plots[[range]], varSplit = caste)  
+
+  pO <- cowplot::plot_grid(p1, NULL, NULL, NULL,NULL, NULL,NULL, NULL,NULL, NULL, NULL , 
+                     ncol = 1,
+                     rel_heights = c(1, -0.25, 1, -0.25, 1, -0.25, 1, -0.25, 1, -0.25, 1 ))
+ggsave(filename = str_c(fileName, ".jpg"), plot = pO, height = 11, width = 7)
+}
+  
+sixPer(plots, range= 1:6, fileN = "Bombus1_6")
+sixPer(plots, range= 7:12, fileN = "Bombus7_12")
+sixPer(plots, range= 13:18, fileN = "Bombus13_18")
+notSixPer(plots, range= 19:21) %>% ggsave(plot = ., filename = "Bombus19_21.jpg", height = 11, width = 7)
+
+# onePer(plots, range = 20, fileName = "Bombus_21")
+#debugonce(notSixPer)
+#last <- notSixPer(plots, range= 21:21)
+#ggsave("last6.jpg", last, height = 11, width = 7)
+
+# debugonce(ridgePlot6)
+#  testOut1 <- ridgePlot6(plots[[1]], varSplit = caste, topR = T )
+# testOut2 <- ridgePlot6(plots[[2]], varSplit = caste )
+# testOut3 <- ridgePlot6(plots[[3]], varSplit = caste )
+# testOut4 <- ridgePlot6(plots[[4]], varSplit = caste )
+# testOut5 <- ridgePlot6(plots[[5]], varSplit = caste )
+# # testOut6 <- 
+#   ridgePlot6(plots[[21]], varSplit = caste, botR = T)
+# #testOut1# need first one of 6 with labels, others without
+# library(cowplot)
+# firstSix <- cowplot::plot_grid(testOut1, NULL, testOut2, NULL, testOut3, NULL, testOut4,NULL, testOut5, NULL, testOut6, ncol = 1, 
+#                                rel_heights = c(1, -0.25, 1, -0.25, 1, -0.25, 1, -0.25, 1, -0.25, 1 )   )
+# 
+# ggsave("test6.jpg", firstSix, height = 11, width = 7)
+
+b26 %>% group_by(specificEpithet) %>% summarise() %>% arrange(specificEpithet) %>% mutate(rowN = row_number()) %>% 
+mutate(type1 = case_match())
+
+
+```
+
