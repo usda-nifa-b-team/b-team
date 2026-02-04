@@ -1,8 +1,8 @@
 ---
 output:
   pdf_document:
-    fig_caption: yes
     keep_tex: false
+    extra_dependencies: ["float"]
 params: 
   state: ""    
 title: "`r params$state` Summary Sheet"
@@ -206,8 +206,56 @@ datEcoR <- datEcoR %>% # add ones back in that needed it
                     species, taxonomist, sex, caste, samplingProtocol, date, volunteerGenSpp, genSpp, family)) %>% 
   rbind(datEcoR_nearest)
 
-
+datIded2taxa <- datSt %>% 
+  dplyr::group_by(family) %>% 
+  count()
 ```
+
+```{r setup - percent identified figures, include=FALSE}
+generaID <- dat %>% st_drop_geometry() %>% group_by(family, genus, species) %>% 
+  count() %>% ungroup() %>%  
+  mutate(sppLev = case_when(species %in% NA ~ "Not Identified", !is.na(species) ~ "Identified")) %>% 
+  group_by(family, genus, sppLev) %>% 
+  summarise(n = sum(n)) %>% 
+  filter(!is.na(family))
+
+familyLevel <- 
+  generaID %>% 
+  group_by(family, sppLev)  %>% 
+  summarise(n = sum(n)) %>% 
+  mutate(famID = str_c(family, " - ", sppLev))
+
+famCols <- tibble(cols=c(brewer.pal(5,'Set1'), "black"), 
+                  fams = c('Andrenidae','Apidae','Colletidae',
+                           'Halictidae','Megachilidae', "Melittidae"))
+idFamCols <- famCols %>% 
+  mutate(sppLev = "Identified") %>%  
+  rbind(famCols %>% mutate(sppLev = "Not Identified", cols = "darkgrey")) %>% 
+  mutate(famID = str_c(fams, " - ", sppLev)) %>% select(!c(fams, sppLev))
+
+famCols <- as.character(idFamCols$cols)
+names(famCols) <- idFamCols$famID
+
+genusIdedPlot <- generaID %>% 
+  mutate(famID = str_c(family, " - ", sppLev)) %>% 
+  ggplot(mapping = aes(x = genus, y = n, fill = famID)) + 
+  geom_col(position = position_fill(reverse = T))+
+  facet_wrap(~family, scales = "free_x", ncol = 3)+
+  theme(axis.text.x = element_text(angle = 90 , vjust = 0.5, hjust=1), legend.position = "none")+
+  scale_fill_manual(values = famCols)+
+  labs(x = "Genus", y = "Percentage of Genus Identified to Species")
+  
+
+familyIdedPlot <- familyLevel %>% 
+  ggplot(mapping = aes(x = family, y = n, fill = famID)) + 
+  geom_col(position = position_fill(reverse = T))+
+  #facet_wrap(~family, scales = "free_x", ncol = 2)+
+  #theme(axis.text.x = element_text(angle = 90 , vjust = 0.5, hjust=1))+
+  theme(legend.position = "none")+
+  scale_fill_manual(values = famCols)+
+  labs(y = "% Identified to Species", x = "Family", fill = "")
+```
+
 
 
 ```{r, include=FALSE}
@@ -217,8 +265,39 @@ datEcoR <- datEcoR %>% # add ones back in that needed it
 # nrow(datEcoR %>% filter(STUSPS%in% params$state) )
 
 ```
+\section {Title Page}
+Example cover page image 
+```{r, out.width="65%", out.height= "65%"}
+knitr::include_graphics("Bombus1_6.jpg" )
+```
+\newpage
+\section {Introduction}
 
+Things to introduce here such as: 
 
+  Bee atlas background
+  
+  Contributors
+  
+  Funders(?)
+  
+  Data information
+  
+  Analysis caveats
+  
+```{r famID plot, fig.width=5, fig.height= 4, fig.cap= "Proportion of each bee family identified to species"}
+
+familyIdedPlot
+
+```
+
+```{r genID plot, fig.width=7, fig.height= 7, fig.cap= "Proportion of each bee genus identified to species"}
+genusIdedPlot
+```
+
+\subsection {Citations}
+
+\newpage
 \section{State Totals}
 
 ```{r, include=FALSE}
@@ -235,10 +314,10 @@ nPlntSpp <- datSt %>% st_drop_geometry() %>% group_by(plantGenSpp) %>% summarise
   
 ```
 
-A total of `r nSpp` bee taxa have been observed in `r params$state`. There have been a total of `r nObs` observations in the state, observed visiting `r nPlntSpp` plant taxa, which have been collected by `r nCol` collectors.
+A total of `r nSpp` bee taxa have been observed in `r params$state`. There have been a total of `r nObs` bees collected by `r nCol` individual collectors, from `r nPlntSpp` unique plant taxa. 
 
 \section{State Species List - example of first 10 rows for now}
-```{r}
+```{r, tab.cap= "State Species List"}
 sppList <- slice_head(sppList %>% ungroup(), n = 10 )
 kable(sppList)
 ```
@@ -247,32 +326,46 @@ kable(sppList)
 ```{r, include=FALSE}
 #TODO - DONE - right now species numbers are without genus spp., chao estimates are with genus spp. - need to resolve
  # actually problem is that species numbers exclude missing plants - fixed for now, see notes in renderRmdV3
+
+# make fig cap
 ```
 
-```{r, fig.height= 10, fig.cap= "Observed Species in Each County."}
+```{r actFig, include=FALSE}
 actP <- actualStateRich(stateChao)+
   scale_fill_gradient2(low = "white", 
                        mid = '#f1eef6',
                        high = '#045a8d')
-
-
 ```
 \newpage
 \section{State Sampling Needs}
 Areas with large differences between estimated species richness and observed species richness are ideal locations for additional sampling. More sampling in these areas has the potential to produce additional species, and improve confidence in measures of species diversity. 
 
-```{r, fig.height=6, fig.cap= "Difference between estimated and observed species richness. Larger numbers indiciate that more species are yet to be detected." }
+```{r expFig, include=FALSE}
 gapP <- gapStateRich(stateChao)+
   scale_fill_gradient2(low = "white", 
                        mid = '#ffffcc',
                        high = '#bd0026')
 
-plot_grid(actP, gapP, nrow = 2)
+fig1 <- str_c("Counties of ", params$state,".", " Top: Observed Bee Species, Bottom: Expected Bee Species.")
+
+allP <- cowplot::plot_grid(actP, gapP, nrow = 2)
 ```
+
+
+
+```{r fig.height=8, fig.width= 7, fig.cap= fig1 }
+allP
+```
+
+
 \newpage
 \section {State Counties - Summary}
-The table below shows specimens collected, species present, and collectors in each county. 
-```{r}
+
+```{r, include=FALSE}
+cSumCap <- paste0("Specimens Collected, Species Present, and Collectors per County in ", params$state, ".")
+```
+
+```{r, tab.cap= cSumCap  }
 countySummaryTable <- datSt %>% semi_join(allCounty %>% st_drop_geometry() %>% filter(STUSPS %in% params$state), by = c("county" = "altName")) %>%   
   st_drop_geometry() %>% 
   group_by(county) %>% 
@@ -284,7 +377,11 @@ countySummaryTable <- datSt %>% semi_join(allCounty %>% st_drop_geometry() %>% f
 kable(countySummaryTable)
 ```
 \newpage
-Individual county totals are summarized below
+# By County Summaries
+Bee and plant species richness, observed bee-plant interactions, and the plant species/genera that supported the most bee species are summarized below for each county, along with maps of observed and expected species richness. 
+
+Note that some invasive weeds can support significant bee diversity and abundance. When picking plants to support bees, consider replacing exotic species with a functionally equivalent native plant species. Functionally equivalent species should have similar flower structure, similar flower color, and flower during the same part of the year as the exotic species they will be replacing. 
+
 ```{r, include=FALSE}
 child_section_title <- ""
 
@@ -292,7 +389,7 @@ county2make <- orCounties %>%
   st_drop_geometry() %>% 
   group_by(altName) %>% summarise() %>%
   pull(altName)
-county2make <- county2make[1:3] # TODO - for speed during testing, remove later
+#county2make <- county2make[1:3] # TODO - for speed during testing, remove later
 ```
 
 ```{r}
@@ -311,7 +408,6 @@ resC <- lapply(county2make, knit_child_with_params_county)
 ```{r, results = 'asis',  warning=FALSE}
 cat(unlist(resC), sep = "\n")
 ```
-
 \newpage
 \section{State Ecoregions - Summary}
 
@@ -332,8 +428,6 @@ ecoRegArea <- datEcoR %>%
 kable(ecoRegArea)
 ```
 
-\newpage
-Individual ecoregions are summarized below
 ```{r, include=FALSE}
 child_section_title <- ""
 
@@ -342,7 +436,7 @@ ecor2make <- stateEcoReg %>%
   group_by(name) %>% summarise() %>%
   pull(name)
 
-ecor2make <- ecor2make[1:3] # TODO - for speed during testing, remove later
+# ecor2make <- ecor2make[1:3] # TODO - for speed during testing, remove later
 ```
 
 ```{r}

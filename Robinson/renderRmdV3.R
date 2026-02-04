@@ -23,14 +23,15 @@ load('Robinson/Data/cleanedV3.Rdata') # or load('Data/cleaned.Rdata')
 
 # Test render reports -----------------------------------------------------
 
-# top4testing <- dat %>%
-#   filter(state!="OR") %>%
-#   group_by(collector) %>%
-#   count() %>%
-#   arrange(desc(n)) %>%
-#   st_drop_geometry() %>%
-#   head(n = 15) %>%
-#   dplyr::select(!n)
+top4testing <- dat %>%
+  filter(state=="WA") %>%
+  filter(!is.na(genSpp)) %>% 
+  group_by(collector, year) %>%
+  count() %>%
+  arrange(desc(n)) %>%
+  st_drop_geometry() %>%
+  head(n = 15) %>%
+  dplyr::select(!n)
 # 
 # stateTests <- dat %>%
 #   semi_join(top4testing) %>%
@@ -48,9 +49,9 @@ load('Robinson/Data/cleanedV3.Rdata') # or load('Data/cleaned.Rdata')
   rmarkdown::render(
     input = "Robinson/templateSheetV3_TESTING.Rmd",
       output_file = "testV3_WA.pdf",
-      params = list(collectorName = "Lisa Robinson",
-                    state = "OR", 
-                    year = "2023")
+      params = list(collectorName = "Anne Bulger",
+                    state = "WA", 
+                    year = "2024")
   )
   
 load('Robinson/Data/cleanedV3.Rdata') # or load('Data/cleaned.Rdata')
@@ -171,6 +172,8 @@ rmarkdown::render(
   params = list(state = "OR")
 )
 
+dat %>% st_drop_geometry() %>% group_by(family) %>% 
+  count()
 
 # Below here - troubleshooting errors -------------------------------------
 # TODO - organize currently removes points out of state - some on coast likely could be included

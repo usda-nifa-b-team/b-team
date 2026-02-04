@@ -2,7 +2,9 @@
 title: "Ecoregion (State Child)"
 author: "Rowan R"
 date: "2025-12-07"
-output: pdf_document
+output: 
+  pdf_document:
+    extra_dependencies: ["float"]
 ---
 
 ```{r, include=FALSE}
@@ -47,7 +49,8 @@ singleEcoPerPlnt <- perPlnt_df(singleEcoInt)
 
 ```
 
-## Ecoregion: `r x`
+\newpage
+\section {Ecoregion: `r x`}
 ```{r, include=FALSE, warning=FALSE}
 nSppB_e <- n_distinct(singleEco$genSpp)
 
@@ -64,19 +67,26 @@ Total Plant species: `r nSppP_e`
 
 Total Bee-Plant Interactions: `r nInts_e`
 
-Top Plant Genera For Bee Richness:
-```{r, echo=FALSE}
+```{r, include=FALSE}
+tCap <- str_c("Top Plant Species and Genera for Bee Richness in the ", x, " Ecoregion.") 
+```
+
+\subsection {Top Plant Genera For Bee Richness}
+```{r, echo=FALSE, tab.cap= tCap}
 kable(slice_head(singleEcoPerPlnt %>% arrange(desc(nBeeSpp)) %>%ungroup() %>% select(!c(name, beeSpp)), n = 10))
 ```
 
-```{r}
+```{r, include=FALSE}
 # side by side per county? with county highlighted
 ecor2highlight <- stateChao_ecoreg %>% filter(name %in% x) %>% 
   mutate(gap = as.character(round(Estimator - Observed), 0))
-```
 
-```{r, fig.height=9}
-plot_grid(
+# make figure caption
+fCap <- paste0("Top: Observed Species in the ", x, " Ecoregion.", " Bottom: Number of Additional Species Expected in the ", x, " Ecoregion.")
+```
+\subsection {Bee Richness Highlighted for the `r x` Ecoregion}
+```{r, fig.height=8, fig.cap= fCap, fig.pos= "H", out.extra= ""}
+cowplot::plot_grid(
 actualStateRich(stateChao_ecoreg)+
   scale_fill_gradient2(low = "white", 
                        mid = '#f1eef6',

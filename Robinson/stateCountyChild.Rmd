@@ -2,7 +2,9 @@
 title: "County (State Child)"
 author: "Rowan R"
 date: "2025-12-27"
-output: pdf_document
+output: 
+  pdf_document:
+    extra_dependencies: ["float"]
 ---
 
 ```{r, include=FALSE}
@@ -44,8 +46,8 @@ singleCountInt <- singleCountNoMissing %>%
 singleCountPerPlnt <- perPlnt_df_county(singleCountInt) 
 
 ```
-
-## County: `r x`
+\newpage
+\section {County: `r x`}
 ```{r, include=FALSE, warning=FALSE}
 nSppB_c <- n_distinct(singleCount$genSpp)
 
@@ -62,8 +64,12 @@ Total Plant species: `r nSppP_c`
 
 Total Bee-Plant Interactions: `r nInts_c`
 
-Top Plant Genera For Bee Richness:
-```{r, echo=FALSE}
+```{r, include=FALSE}
+tCap <- str_c("Top Plant Species and Genera for Bee Richness in ", x, " County.")
+```
+
+\subsection {Top Plant Genera For Bee Richness}
+```{r, echo=FALSE, tab.cap=tCap }
 kable(slice_head(singleCountPerPlnt %>% arrange(desc(nBeeSpp)) %>%ungroup() %>% select(!c(county, beeSpp)), n = 10))
 ```
 
@@ -71,11 +77,14 @@ kable(slice_head(singleCountPerPlnt %>% arrange(desc(nBeeSpp)) %>%ungroup() %>% 
 # side by side per county? with county highlighted
 county2highlight <- stateChao %>% filter(altName %in% x) %>% 
   mutate(gap = as.character(round(Estimator - Observed), 0))
+
+# creating fig caption
+fCap <- paste0("Top: Observed Species in ", x, " County", " Bottom: Number of Additional Species Expected in ", x, " County")
+
 ```
-
-
-```{r, fig.height=9}
-plot_grid(
+\subsection {Bee Richness Highlighted for `r x` County}
+```{r, fig.height=7, fig.cap=fCap, fig.pos= "H", out.extra= ""}
+cowplot::plot_grid(
 actualStateRich(stateChao)+
   scale_fill_gradient2(low = "white", 
                        mid = '#f1eef6',
