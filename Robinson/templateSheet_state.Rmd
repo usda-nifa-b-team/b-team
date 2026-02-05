@@ -76,10 +76,16 @@ genusCertainty <- orFlora %>% filter(!is.na(orig1)) %>% group_by(gen) %>%
 
 
 ```{r setup datSt, include=FALSE}
+# fix ecoregion names in ecoregsimplified
+
+ecoRegS_namesForState <- ecoRegSimplified %>% 
+  mutate(name = str_replace_all(name, "&", "and"), 
+         name = str_replace_all(name, "\\n", " "))
+
 # filter to state
 
 datSt <- dat %>% 
-   st_join(ecoRegSimplified %>% select(STUSPS, geometry), st_within) %>% 
+   st_join(ecoRegS_namesForState %>% select(STUSPS, geometry), st_within) %>% 
   filter(STUSPS%in% params$state) %>% # fixes the out of state points for now
 select(!STUSPS) %>% 
   filter(!is.na(genSpp)) %>% # no missing bee IDs currently - this is built into downstream code already 
@@ -186,18 +192,20 @@ stateChao <- addChao2State(datSt, state2do = params$state )
 ## ecoregion summary setup ---- 
 
 datEcoR <- datSt %>% # match ecoreg to pnts
-  st_join(ecoRegSimplified, st_within) #%>% 
-  #filter(STUSPS%in% params$state) # fixes the out of state points for now
+  st_join(ecoRegS_namesForState, st_within) %>% 
+    mutate(name = str_replace_all(name, "\\n", " "), 
+           name = str_replace_all(name, "&" , "and")) # fixing names that cause problems later  
+#%>% filter(STUSPS%in% params$state) # fixes the out of state points for now
 
 # get only ecoregions within state 
-stateEcoReg <- ecoRegSimplified %>% 
+stateEcoReg <- ecoRegS_namesForState %>% 
   filter(STUSPS%in% params$state) %>% 
   group_by(L3_KEY) %>% 
   mutate(ecorArea = st_area(geometry))
 
 # some are just outside (showing up in water probably, or minor CRS diffs) - for now just used st_nearest, might not be perfect
 datEcoR_nearest <- datSt %>% semi_join(datEcoR %>% filter(is.na(L3_KEY)) %>% st_drop_geometry()) %>% 
-  st_join(ecoRegSimplified, st_nearest_feature) # %>% filter(is.na(L3_KEY))
+  st_join(ecoRegS_namesForState, st_nearest_feature) # %>% filter(is.na(L3_KEY))
 
 datEcoR <- datEcoR %>% # add ones back in that needed it
   anti_join(datEcoR_nearest %>% st_drop_geometry(), 
@@ -431,7 +439,10 @@ kable(ecoRegArea)
 ```{r, include=FALSE}
 child_section_title <- ""
 
-ecor2make <- stateEcoReg %>% 
+
+
+ecor2make <- 
+  stateEcoReg %>% 
   st_drop_geometry() %>% 
   group_by(name) %>% summarise() %>%
   pull(name)
