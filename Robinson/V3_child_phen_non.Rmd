@@ -1,0 +1,67 @@
+---
+title: "V3_child_phenology"
+author: "Rowan R"
+date: "2026-02-16"
+output: pdf_document
+params:
+  collectorName: ""
+  state: ""
+  year: ""
+---
+
+```{r}
+quantFun <- function(x, q) { #"Borrowed" from dplyr 1.0.0 summary
+  tibble(x = quantile(x, q), q = q)
+}
+
+pheno <- data
+
+phenoRange <- pheno %>% st_drop_geometry() %>% filter(!is.na(date)) %>% 
+  mutate(doy=as.numeric(format(date,format="%j"))) %>%
+  summarize(quantFun(x=doy,q=c(0.05,0.25,0.5,0.75,0.95))) %>%
+  mutate(xOffset=as.Date(as.character(x-10),format="%j"), #x-Location for text label
+         yOffset=length(unique(pheno$genSpp[!grepl(".spp",pheno$genSpp)])), #y-location for text label
+         x=as.Date(as.character(x),format="%j"), #Actual date
+         lab=paste0(q*100,"%"), # Percentile Label
+         dat=format(x,format="%B %d")) #Date label
+```
+Most bees (90%) in `r stateNameNice` were caught between `r phenoRange$dat[1]` and `r phenoRange$dat[5]`, but the peak of season (50% of specimens) was from `r phenoRange$dat[2]` to `r phenoRange$dat[4]`.
+
+```{r, include=FALSE}
+numAxis <- n_distinct(pheno$genSpp)
+```
+
+
+```{r sppPhenology, fig.cap="Phenology plot for all bee species caught, sorted by median abundance times. Percentiles of overall emergence times (50th & 90th) are shown in grey shaded regions. Date ranges for each species (minimum, first, second, third quartiles, and maximum) are shown only for species with >10 specimens.", fig.height=11*0.6, fig.width=10*0.7}
+
+rectDat <- with(phenoRange,data.frame(perc=c("50th","90th"),
+                                      ymin=x[q==0.25|q==0.05],ymax=x[q==0.75|q==0.95],
+                                      xmin=c(0,0),xmax=rep(yOffset[1],2)))
+
+pheno %>% st_drop_geometry() %>% filter(!is.na(date)) %>%
+  mutate(doy=as.numeric(format(date,format="%j"))) %>%
+  filter(species!="spp.") %>% group_by(genSpp) %>%
+  summarize(n=n(),quantFun(x=doy,q=seq(0,1,0.25))) %>%
+  mutate(q=rank(q)) %>%
+  pivot_wider(names_from=q,names_prefix="q",values_from=x) %>%
+  mutate(across(c(q1,q2,q4,q5),~ifelse(n>10,.,NA))) %>%
+  ungroup() %>%
+  arrange(desc(q3)) %>% mutate(across(c(q1:q5),~as.Date(as.character(.),format="%j"))) %>%
+  # filter(n>20) %>%
+  mutate(genSpp=factor(genSpp,levels=genSpp)) %>%
+  ggplot(aes(x=genSpp)) + geom_linerange(aes(ymin=q1,ymax=q5))+
+
+  geom_linerange(aes(ymin=q2,ymax=q4),size=0.3)+ #Bee emergence dates
+  geom_point(aes(y=q3),size=0.3) +
+
+   #geom_text(data=phenoRange,aes(x=yOffset,y=xOffset,label=lab),col="red",alpha=0.8)+ #Percentile markers
+  #geom_hline(data=phenoRange,aes(yintercept=x),col="red",linetype="dashed",alpha=0.8)+
+   geom_rect(data=rectDat,aes(x=NULL,xmin=xmin,xmax=xmax,ymin=ymin,ymax=ymax),alpha=0.2,show.legend = FALSE)+
+  coord_flip()+labs(x=NULL,y=NULL)+
+  theme(panel.grid.major.x=element_line(colour="grey"),
+       # panel.grid.minor.x=element_line(colour="grey"),
+        axis.text.x=element_text(size=7),
+        axis.text.y=element_text(size= 4))+
+  scale_y_date(date_breaks="1 month",date_labels="%B",date_minor_breaks="1 weeks")
+ 
+```

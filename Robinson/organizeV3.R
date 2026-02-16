@@ -200,8 +200,13 @@ wideTable <- function(d,countBy={{countBy}},countNum={{countNum}},nsplit=NA,colN
 
 #Load and organize data ---------------------------
 
+# for updating data:
+#datNew <- readxl::read_xlsx("Robinson/Data/OBA_2018-2026_V1_15_02-09-2026.xlsx")
+#datNew %>% write_csv("Robinson/Data/OBA_2018-2026_V1_Feb9_2026.csv")
+
 # round 1 - import 
-dat1 <- read_csv("Robinson/Data/OBA_2018-2024_all_records.csv") %>% 
+dat1 <- read_csv("Robinson/Data/OBA_2018-2026_V1_Feb9_2026.csv") %>% 
+  mutate(uniqueID = row_number()) %>% 
   rename_with(.cols = everything(), .fn = make.names) %>% 
   dplyr::select(
          recordedBy, 
@@ -212,8 +217,9 @@ dat1 <- read_csv("Robinson/Data/OBA_2018-2024_all_records.csv") %>%
          contains('Det'), #Volunteer determinations
          family, genus, specificEpithet, identifiedBy, # actual determinations
          sex, caste, # new, maybe not needed?
-         samplingProtocol # new needed to remove trapped records
-    )  
+         samplingProtocol, # new needed to remove trapped records
+         uniqueID
+         )  
 
 # round 2 - rename 
 
@@ -454,11 +460,22 @@ bcBorder <- st_read("Robinson/Shapefiles/bcProv/ABMS_PROVINCE_SP/ABMS_PROV_polyg
 
 allCounty <- usCountiesW %>% rbind(bcRegions) 
 
-# checking state is correct for point locations   
+# checking state is correct for point locations  
+
 stateMatch <- dat %>% 
   st_join(allCounty, st_within) %>% 
   mutate(stateMatch = (state == STUSPS)) %>% 
   filter(stateMatch!=TRUE)
+
+# datOrig <- read_csv("Robinson/Data/OBA_2018-2026_V1_Feb9_2026.csv") %>% 
+#   mutate(uniqueID = row_number())
+
+# joinPls <- datOrig %>%  
+#   semi_join(stateMatch %>% st_drop_geometry(), by = "uniqueID") %>% 
+#   left_join(stateMatch %>% st_drop_geometry() %>% 
+#               select(uniqueID, instName:STUSPS))
+
+#writexl::write_xlsx(joinPls, "Robinson/Data/mismatchingPoints.xlsx")
 
 if(nrow(stateMatch)>0){
   warning("These records have been removed because their recorded state does not match their point's location")
@@ -544,7 +561,9 @@ singles <- dat %>% st_drop_geometry() %>% group_by(genSpp) %>%
   filter(!grepl('spp\\.',genSpp)) %>%
   filter(n==1)
 
-dat <- dat %>% mutate(across(c(day, month, locality), .fns = str_trim )) # fixing whitespace as found below
+dat <- dat %>% mutate(across(c(day, month, locality), .fns = str_trim )) %>% # fixing whitespace as found below
+ select(!uniqueID) %>% 
+  mutate(locality = str_squish(locality)) # fixing double space in "Buell  Park"
 
 #Test for whitespace
 if(any(apply(st_drop_geometry(dat),2,wSpaceTest))){
@@ -557,8 +576,6 @@ if(any(apply(st_drop_geometry(dat),2,function(x) any(grepl('  ',sort(unique(x)))
   stop('Double spaces found')
   apply(st_drop_geometry(dat),2,function(x) any(grepl('  ',sort(unique(x)))))
 }
-
-#TODO add column that splits east and west of cascades by ecoregion
 
 # save space 
 rm(dat1)

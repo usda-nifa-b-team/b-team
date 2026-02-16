@@ -76,6 +76,20 @@ tCap <- str_c("Top Plant Species and Genera for Bee Richness in the ", x, " Ecor
 kable(slice_head(singleEcoPerPlnt %>% arrange(desc(nBeeSpp)) %>%ungroup() %>% select(!c(name, beeSpp)), n = 10))
 ```
 
+\subsection {Most abundant bee species `r x` Ecoregion}
+
+```{r, include=FALSE}
+tcap_topb <- paste0("Most Abundant Bee Species of the ", x, " Ecoregion.")
+```
+
+```{r, tab.cap= tcap_topb}
+kable(slice_head(singleEcoNoMissing %>% 
+                   filter(!str_detect(genSpp, "spp\\.")) %>% 
+        group_by(genSpp) %>% 
+        count() %>%ungroup() %>% 
+        arrange(desc(n)), n = 10) )
+```
+
 ```{r, include=FALSE}
 # side by side per county? with county highlighted
 ecor2highlight <- stateChao_ecoreg %>% filter(name %in% x) %>% 
@@ -105,3 +119,18 @@ gapStateRich(stateChao_ecoreg)+
 nrow = 2
 )
 ```
+
+\subsection {Uncommon Bee Species for the `r x` Ecoregion}
+```{r, include=FALSE}
+tcap_unc <- paste0("Bees with less than 15 project-wide observations, and less than 10 in the ",  x, " Ecoregion.")
+```
+
+
+```{r, tab.cap= tcap_unc}
+kable(singleEcoNoMissing %>% 
+  group_by(genSpp) %>% 
+  count() %>% ungroup() %>% 
+  semi_join(below15_proj, by = "genSpp")
+  )
+```
+

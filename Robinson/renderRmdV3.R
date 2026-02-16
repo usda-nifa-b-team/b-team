@@ -22,9 +22,9 @@ load('Robinson/Data/cleanedV3.Rdata') # or load('Data/cleaned.Rdata')
 # get figures working (depending on how render works) that depend on different state shapefiles etc.
 
 # Test render reports -----------------------------------------------------
-
+dat %>% group_by(state) %>% count()
 top4testing <- dat %>%
-  filter(state=="WA") %>%
+  filter(state=="ID") %>%
   filter(!is.na(genSpp)) %>% 
   group_by(collector, year) %>%
   count() %>%
@@ -45,13 +45,24 @@ top4testing <- dat %>%
 # 
 # lr <- dat %>% filter(collector %in% "Lisa Robinson") %>%
 #   filter(!is.na(genSpp))
-# 
+
+load('Robinson/Data/cleanedV3.Rdata') # or load('Data/cleaned.Rdata')
+
+  # rmarkdown::render(
+  #   input = "Robinson/templateSheetV3_TESTING.Rmd",
+  #     output_file = "testV3_BC.pdf",
+  #     params = list(collectorName = "Lincoln Best",
+  #                   state = "BC", 
+  #                   year = "2022")
+  # )
+load('Robinson/Data/cleanedV3.Rdata') # or load('Data/cleaned.Rdata')
+
   rmarkdown::render(
     input = "Robinson/templateSheetV3_TESTING.Rmd",
-      output_file = "testV3_WA.pdf",
-      params = list(collectorName = "Anne Bulger",
-                    state = "WA", 
-                    year = "2024")
+    output_file = "testV3_ID.pdf",
+    params = list(collectorName = "Karleen Davis",
+                  state = "ID", 
+                  year = "2025")
   )
   
 load('Robinson/Data/cleanedV3.Rdata') # or load('Data/cleaned.Rdata')

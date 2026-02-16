@@ -62,3 +62,6 @@ stateSummaries <- function(df, state2do = "WA"){
 
 
 # more advanced would be tiling the state but that's a lot more complex - maybe could use spp. models in future
+
+
+

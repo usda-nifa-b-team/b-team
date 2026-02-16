@@ -66,12 +66,26 @@ genusCertainty <- orFlora %>% filter(!is.na(orig1)) %>% group_by(gen) %>%
     n!= 1 ~ "Uncertain"
   ))
 
+# specialist bee list
+
+specBeesLookup <- read_csv("Robinson/Data/specialistBees.csv") %>% 
+  separate_wider_delim(cols = `Genus (Subgenus) species`, delim = " ", names = c("genus", "subgenusSpp"), too_few = "align_start", too_many = "merge") %>% 
+  separate_wider_delim(subgenusSpp, ") ", names = c("subgen", "spp"), too_few = "align_end") %>% 
+  mutate(genSpp = str_c(genus, " ", spp))
+
+
 # datFlora <- dat %>% st_drop_geometry() %>% left_join(orFlora %>% filter(Name_Status %in% "Accepted")) %>% 
 #   left_join(genusCertainty %>% select(!n)) %>% 
 #   mutate(orig1 = case_when(
 #     !is.na(orig1) ~ orig1, 
 #     is.na(orig1) ~ origins
 #   ))
+
+below15_proj <- dat %>% st_drop_geometry() %>% 
+  filter(!str_detect(genSpp, "spp\\.|Bombus impatiens")) %>% 
+  group_by(genSpp) %>% 
+  count() %>% 
+  filter(n<15) %>% ungroup()
 ```
 
 
@@ -100,6 +114,8 @@ select(!STUSPS) %>%
     is.na(orig1) ~ "mixed" ,
     .default = orig1
   ))
+
+
 ```
 
 
@@ -227,9 +243,21 @@ generaID <- dat %>% st_drop_geometry() %>% group_by(family, genus, species) %>%
   summarise(n = sum(n)) %>% 
   filter(!is.na(family))
 
-familyLevel <- 
-  generaID %>% 
+familyInt <- 
+ dat %>% st_drop_geometry() %>% group_by(family, genus, species, year) %>% 
+  count() %>% ungroup() %>%  
+  mutate(sppLev = case_when(species %in% NA ~ "Not Identified", !is.na(species) ~ "Identified")) %>% 
+  group_by(family, genus, sppLev, year) %>% 
+  summarise(n = sum(n)) %>% 
+  filter(!is.na(family))
+
+familyLevel <- familyInt %>% 
   group_by(family, sppLev)  %>% 
+  summarise(n = sum(n)) %>% 
+  mutate(famID = str_c(family, " - ", sppLev))
+
+familyLevYr <- familyInt %>% 
+  group_by(family, sppLev, year)  %>% 
   summarise(n = sum(n)) %>% 
   mutate(famID = str_c(family, " - ", sppLev))
 
@@ -262,6 +290,14 @@ familyIdedPlot <- familyLevel %>%
   theme(legend.position = "none")+
   scale_fill_manual(values = famCols)+
   labs(y = "% Identified to Species", x = "Family", fill = "")
+
+famIdByYr <- familyLevYr %>% ungroup() %>% 
+  ggplot(aes(x = family, y = n, fill = famID))+
+    geom_col(position = position_fill(reverse = T))+
+    theme(axis.text.x = element_text(angle = 90 , vjust = 0.5, hjust=1), legend.position = "none")+
+  scale_fill_manual(values = famCols)+
+  labs(y = "% Identified to Species", x = "Family", fill = "")+
+  facet_wrap(~year, ncol = n_distinct(familyLevYr$year)/2)
 ```
 
 
@@ -276,7 +312,7 @@ familyIdedPlot <- familyLevel %>%
 \section {Title Page}
 Example cover page image 
 ```{r, out.width="65%", out.height= "65%"}
-knitr::include_graphics("Bombus1_6.jpg" )
+#knitr::include_graphics("Bombus1_6.jpg" )
 ```
 \newpage
 \section {Introduction}
@@ -284,18 +320,36 @@ knitr::include_graphics("Bombus1_6.jpg" )
 Things to introduce here such as: 
 
   Bee atlas background
+    The Oregon Bee Atlas is a project of the Department of Agriculature at Oregon State University.  
   
   Contributors
+  Lincoln Best, Andony Melathopoulos, Antranig Basman, Samuel V. J. Robinson, Rowan Rampton, August Jackson, Olivia - , 
+  Other bee atlas members? Caleb, Bonnie
+  Anyone else?
+  The many volunteers that collect the bees that make this dataset possible, plus those who conduct outreach or support the project in any other way. 
   
-  Funders(?)
+  Funders
+  This project is funded in part by a USDA NIFA Grant 
   
   Data information
   
-  Analysis caveats
+  Data is curated by Lincoln Best, Myles Scholz, others?
   
-```{r famID plot, fig.width=5, fig.height= 4, fig.cap= "Proportion of each bee family identified to species"}
+  Use of the data or any component of this report is encouraged, but must acknowledge the authors through citation or acknowledgement. 
+  
+  Suggested citations:
+  
+  Report contents: Rampton, Best, Melathopoulos, Jackson, Robinson
+  
+  Bee atlas data: Best, Melathopoulos, ADD REST , year, other. 
+  
+  Analysis caveats
+  Bee identification is a challenging and time-consuming process. Many bees in the collection have not yet been identified to species. Some very rare species may be present within these unidentified species, but there may also be relatively common bee species that are challenging to identify. As such, some bee-plant interactions may currently be over represented in Ecoregion and County totals. This is likely most applicable to *Bombus* species, nearly all of which are identified to species and are also abundant in the data. Similarly, not all plant species have been identified to species.    
+  
+\newpage
+```{r famID plot, fig.width=7, fig.height= 5, fig.cap= "Proportion of each bee family identified to species, by year"}
 
-familyIdedPlot
+famIdByYr
 
 ```
 
@@ -304,6 +358,10 @@ genusIdedPlot
 ```
 
 \subsection {Citations}
+```{r, echo=FALSE}
+citation("tidyverse")
+citation()
+```
 
 \newpage
 \section{State Totals}
@@ -322,7 +380,7 @@ nPlntSpp <- datSt %>% st_drop_geometry() %>% group_by(plantGenSpp) %>% summarise
   
 ```
 
-A total of `r nSpp` bee taxa have been observed in `r params$state`. There have been a total of `r nObs` bees collected by `r nCol` individual collectors, from `r nPlntSpp` unique plant taxa. 
+A total of `r nSpp` bee taxa have been identified among specimens submitted by volunteers to the `r params$state` Bee Atlas. There have been a total of `r nObs` bees collected by `r nCol` individual collectors, from `r nPlntSpp` unique plant taxa. 
 
 \section{State Species List - example of first 10 rows for now}
 ```{r, tab.cap= "State Species List"}
@@ -388,7 +446,7 @@ kable(countySummaryTable)
 # By County Summaries
 Bee and plant species richness, observed bee-plant interactions, and the plant species/genera that supported the most bee species are summarized below for each county, along with maps of observed and expected species richness. 
 
-Note that some invasive weeds can support significant bee diversity and abundance. When picking plants to support bees, consider replacing exotic species with a functionally equivalent native plant species. Functionally equivalent species should have similar flower structure, similar flower color, and flower during the same part of the year as the exotic species they will be replacing. 
+Note that some invasive weeds can support significant bee diversity and abundance. When picking plants to support bees, consider replacing exotic species with a functionally equivalent native plant species. Functionally equivalent species should have similar flower structure, similar flower color, and produce flowers during the same part of the year as the exotic species they will be replacing. 
 
 ```{r, include=FALSE}
 child_section_title <- ""
@@ -397,7 +455,7 @@ county2make <- orCounties %>%
   st_drop_geometry() %>% 
   group_by(altName) %>% summarise() %>%
   pull(altName)
-#county2make <- county2make[1:3] # TODO - for speed during testing, remove later
+county2make <- county2make[1:3] # TODO - for speed during testing, remove later
 ```
 
 ```{r}
@@ -447,7 +505,7 @@ ecor2make <-
   group_by(name) %>% summarise() %>%
   pull(name)
 
-# ecor2make <- ecor2make[1:3] # TODO - for speed during testing, remove later
+ecor2make <- ecor2make[1:3] # TODO - for speed during testing, remove later
 ```
 
 ```{r}
