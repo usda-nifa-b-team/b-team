@@ -214,24 +214,30 @@ Mode <- function(x) {
 
 # family-genus table
 
-itis <- read_csv("Data/ITIS_global_bee_taxonomy_lookup_7_28_2025.csv") %>% 
+itis <- read_csv("Robinson/Data/ITIS_global_bee_taxonomy_lookup_7_28_2025.csv") %>% 
   dplyr::group_by(genus, family) %>% summarise() %>% ungroup() %>% 
   mutate(family = as.factor(family))
 
 # overall data 
 
-allOba26 <- read_xlsx("Data/OBA_OSAC_2026.xlsx")
+# replaced OSAC data with dat
 
-b26_int <- allOba26 %>% 
-  filter(stateProvince %in% "Oregon") %>% 
-  filter(!is.na(specificEpithet)) %>% 
-  filter(genus %in% "Bombus") %>% 
-  select(country:decimalLongitude, phylum:taxonRank, sex, caste, associatedTaxa: verbatimEventDate) 
+#dat <- load('Robinson/Data/cleanedV3.Rdata')
 
-b26_int2 <- b26_int %>% 
-  group_by(country,          stateProvince,    county,           locality,         decimalLatitude,  decimalLongitude, phylum,          
-class,            order,            family,           genus,            subgenus,         specificEpithet,  taxonRank,       
- sex,              caste,            associatedTaxa,   samplingProtocol, samplingEffort,   year,             month,           
+# b26 %>% 
+#   filter(state %in% "Oregon") %>% 
+#   filter(!is.na(specificEpithet)) %>% 
+#   filter(genus %in% "Bombus") %>% 
+#   select(country:decimalLongitude, phylum:taxonRank, sex, caste, associatedTaxa: verbatimEventDate) 
+
+b26_int <- dat %>% 
+  filter(state %in% "OR") %>% 
+  filter(!is.na(genSpp)) %>% 
+  filter(genus %in% "Bombus") #%>% 
+  #select(country:decimalLongitude, phylum:taxonRank, sex, caste, associatedTaxa: verbatimEventDate) 
+
+b26_int2 <- b26_int %>% st_drop_geometry() %>% 
+  group_by(country,          state,    county,           locality ,  family,           genus,      genSpp,  caste, sex,            plantGenSpp,   samplingProtocol, year,             month,           
  day,              verbatimEventDate) %>% 
   count() %>% 
   mutate(n = case_match(samplingProtocol, 
@@ -249,11 +255,11 @@ class,            order,            family,           genus,            subgenus
 ```{r}
 b26 <- b26_int2 %>% 
   mutate(caste = case_when(
-    caste%in% "worker" & specificEpithet %in%c("insularis", "flavidus") ~ "gyne",# fixing some workers which don't exist for Psithyrus
+    caste%in% "worker" & genSpp %in%c("Bombus insularis", "Bombus flavidus") ~ "gyne",# fixing some workers which don't exist for Psithyrus
     .default = caste ) ) %>% 
-  filter(!specificEpithet %in% "impatiens") %>%  # only one record, makes a blank figure
+  filter(!genSpp %in% "Bombus impatiens") %>%  # only one record, makes a blank figure
   uncount(Count) %>% 
-  mutate(across(c(country : locality, phylum:associatedTaxa), as.factor), # convert to factors
+  mutate(across(where(is.numeric), as.factor), # convert to factors
   date=paste(year,month,day,sep='-'), # no missing year month dates in this data
   date=as.Date(date,format='%Y-%m-%d'), 
   Date = date, # make date from individ columns - note done this way to allow for use of full OBA data in future (already has "date") 
@@ -264,7 +270,7 @@ b26 <- b26_int2 %>%
                          JD > 205 ~ "late",
                          TRUE ~ "mid"),
   StationYear = paste(county, Year, sep = "_")) %>% 
-  mutate( Short.label.name = str_c(genus, specificEpithet, " ")) %>% 
+  mutate( Short.label.name = genSpp) %>% 
   filter(!is.na(caste))
     
     #%>% 
@@ -430,7 +436,6 @@ levOrder <- function(var_orders, varSplit){
 
 
 ```{r genus_ridgeplot plot, echo = F}
-
 # TODO 
 # turn this figure into function, maybe put them all into a function?
 ridgePlot1 <- function(df, varSplit){
@@ -442,7 +447,7 @@ ridgePlot1 <- function(df, varSplit){
   var_orders <- varOrders(dat_ridges, varSplit = {{varSplit}}, bombus = TRUE) # using set order
   level_order <- levOrder(var_orders = var_orders, varSplit = {{varSplit}})
   
-  bombSp <-pull(dat_ridges %>% mutate(genSpp = str_c(genus, " ", specificEpithet)) %>% 
+  bombSp <-pull(dat_ridges %>% 
   group_by(genSpp) %>% summarise())
 
 ploti <- dat_ridges %>% select(week, everything()) %>% 
@@ -493,7 +498,7 @@ ridgePlot6 <- function(df, varSplit, topR = FALSE, botR = FALSE){
   var_orders <- varOrders(dat_ridges, varSplit = {{varSplit}}, bombus = TRUE) # using set order
   level_order <- levOrder(var_orders = var_orders, varSplit = {{varSplit}})
   
-  bombSp <-pull(dat_ridges %>% mutate(genSpp = str_c(genus, " ", specificEpithet)) %>% 
+  bombSp <-pull(dat_ridges %>% 
   group_by(genSpp) %>% summarise())
 
 ploti <- dat_ridges %>% select(week, everything()) %>% 
@@ -549,12 +554,15 @@ plotO <- ploti+ # if top of group of plots, add the season labels
   }
 return(plotO)
 }
+```
 
+
+```{r genus_ridgeplot plot, echo = F}
 # ridgePlot1(plots[[22]], varSplit = caste)
 #ridgePlot(b26 %>% filter(specificEpithet %in% "caliginosus"), varSplit = caste)
 
-plots <- b26 %>%
-  split(~specificEpithet) # %>%
+# plots <- b26 %>%
+#   split(~genSpp) # %>%
   #map(\(x) ~ridgePlot(.x, varSplit = caste))
   
 # b27 <- b26 %>% mutate(casteSpp = str_c(specificEpithet, "-", caste)) %>% filter(specificEpithet %in% c("caliginosus", "sylvicola")) 
@@ -588,62 +596,63 @@ else{
   nonFirst <- (miR+1):(mR-1)
 }
 
-o2 <- NULL
-o3 <- NULL
-o4 <- NULL
-o5 <- NULL
+# o2 <- NULL
+# o3 <- NULL
+# o4 <- NULL
+# o5 <- NULL
 
-o1 <- ridgePlot6(plots[[miR]], varSplit = caste, topR = T )
+#o1 <- ridgePlot6(plots[[miR]], varSplit = caste, topR = T )
 
-try(o2 <- ridgePlot6(plots[[nonFirst[[1]]]], varSplit = caste ))
-try(o3 <- ridgePlot6(plots[[nonFirst[[2]]]], varSplit = caste ))
-try(o4 <- ridgePlot6(plots[[nonFirst[[3]]]], varSplit = caste ))
-try(o5 <- ridgePlot6(plots[[nonFirst[[4]]]], varSplit = caste ))
-oM <- ridgePlot6(plots[[mR]], varSplit = caste, botR = T )
-
-pO <- cowplot::plot_grid(o1, NULL, o2,NULL, oM, NULL, o3, NULL, o4,NULL, o5, 
-                         ncol = 1, 
-                    rel_heights = c(1, -0.25, 1, -0.25, 1, -0.25, 1, -0.25, 1, -0.25, 1 ))
-
-return(pO)
-}
-onePer <- function(df, range, fileName){
-
-  p1 <- ridgePlot1(plots[[range]], varSplit = caste)  
-
-  pO <- cowplot::plot_grid(p1, NULL, NULL, NULL,NULL, NULL,NULL, NULL,NULL, NULL, NULL , 
-                     ncol = 1,
-                     rel_heights = c(1, -0.25, 1, -0.25, 1, -0.25, 1, -0.25, 1, -0.25, 1 ))
-ggsave(filename = str_c(fileName, ".jpg"), plot = pO, height = 11, width = 7)
-}
-  
-sixPer(plots, range= 1:6, fileN = "Bombus1_6")
-sixPer(plots, range= 7:12, fileN = "Bombus7_12")
-sixPer(plots, range= 13:18, fileN = "Bombus13_18")
-notSixPer(plots, range= 19:21) %>% ggsave(plot = ., filename = "Bombus19_21.jpg", height = 11, width = 7)
-
-# onePer(plots, range = 20, fileName = "Bombus_21")
-#debugonce(notSixPer)
-#last <- notSixPer(plots, range= 21:21)
-#ggsave("last6.jpg", last, height = 11, width = 7)
-
-# debugonce(ridgePlot6)
-#  testOut1 <- ridgePlot6(plots[[1]], varSplit = caste, topR = T )
-# testOut2 <- ridgePlot6(plots[[2]], varSplit = caste )
-# testOut3 <- ridgePlot6(plots[[3]], varSplit = caste )
-# testOut4 <- ridgePlot6(plots[[4]], varSplit = caste )
-# testOut5 <- ridgePlot6(plots[[5]], varSplit = caste )
-# # testOut6 <- 
-#   ridgePlot6(plots[[21]], varSplit = caste, botR = T)
-# #testOut1# need first one of 6 with labels, others without
-# library(cowplot)
-# firstSix <- cowplot::plot_grid(testOut1, NULL, testOut2, NULL, testOut3, NULL, testOut4,NULL, testOut5, NULL, testOut6, ncol = 1, 
-#                                rel_heights = c(1, -0.25, 1, -0.25, 1, -0.25, 1, -0.25, 1, -0.25, 1 )   )
+# try(o2 <- ridgePlot6(plots[[nonFirst[[1]]]], varSplit = caste ))
+# try(o3 <- ridgePlot6(plots[[nonFirst[[2]]]], varSplit = caste ))
+# try(o4 <- ridgePlot6(plots[[nonFirst[[3]]]], varSplit = caste ))
+# try(o5 <- ridgePlot6(plots[[nonFirst[[4]]]], varSplit = caste ))
+# oM <- ridgePlot6(plots[[mR]], varSplit = caste, botR = T )
 # 
-# ggsave("test6.jpg", firstSix, height = 11, width = 7)
-
-b26 %>% group_by(specificEpithet) %>% summarise() %>% arrange(specificEpithet) %>% mutate(rowN = row_number()) %>% 
-mutate(type1 = case_match())
+# pO <- cowplot::plot_grid(o1, NULL, o2,NULL, oM, NULL, o3, NULL, o4,NULL, o5, 
+#                          ncol = 1, 
+#                     rel_heights = c(1, -0.25, 1, -0.25, 1, -0.25, 1, -0.25, 1, -0.25, 1 ))
+# 
+# return(pO)
+# }
+# onePer <- function(df, range, fileName){
+# 
+#   p1 <- ridgePlot1(plots[[range]], varSplit = caste)  
+# 
+#   pO <- cowplot::plot_grid(p1, NULL, NULL, NULL,NULL, NULL,NULL, NULL,NULL, NULL, NULL , 
+#                      ncol = 1,
+#                      rel_heights = c(1, -0.25, 1, -0.25, 1, -0.25, 1, -0.25, 1, -0.25, 1 ))
+# ggsave(filename = str_c(fileName, ".jpg"), plot = pO, height = 11, width = 7)
+# }
+#   
+# sixPer(plots, range= 1:6, fileN = "Bombus1_6")
+# sixPer(plots, range= 7:12, fileN = "Bombus7_12")
+# sixPer(plots, range= 13:18, fileN = "Bombus13_18")
+# notSixPer(plots, range= 19:21) %>% ggsave(plot = ., filename = "Bombus19_21.jpg", height = 11, width = 7)
+# 
+#  onePer(plots, range = 20, fileName = "Bombus_21")
+# #debugonce(notSixPer)
+# #last <- notSixPer(plots, range= 21:21)
+# #ggsave("last6.jpg", last, height = 11, width = 7)
+# 
+# # debugonce(ridgePlot6)
+# #  testOut1 <- ridgePlot6(plots[[1]], varSplit = caste, topR = T )
+# # testOut2 <- ridgePlot6(plots[[2]], varSplit = caste )
+# # testOut3 <- ridgePlot6(plots[[3]], varSplit = caste )
+# # testOut4 <- ridgePlot6(plots[[4]], varSplit = caste )
+# # testOut5 <- ridgePlot6(plots[[5]], varSplit = caste )
+# # # testOut6 <- 
+# #   ridgePlot6(plots[[21]], varSplit = caste, botR = T)
+# # #testOut1# need first one of 6 with labels, others without
+# # library(cowplot)
+# # firstSix <- cowplot::plot_grid(testOut1, NULL, testOut2, NULL, testOut3, NULL, testOut4,NULL, testOut5, NULL, testOut6, ncol = 1, 
+# #                                rel_heights = c(1, -0.25, 1, -0.25, 1, -0.25, 1, -0.25, 1, -0.25, 1 )   )
+# # 
+# # ggsave("test6.jpg", firstSix, height = 11, width = 7)
+# 
+# b26 %>% group_by(genSpp) %>% summarise() %>% arrange(genSpp) %>% 
+#   mutate(rowN = row_number()) %>% 
+# mutate(type1 = case_match())
 
 
 ```

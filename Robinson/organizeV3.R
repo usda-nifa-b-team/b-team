@@ -582,3 +582,4 @@ rm(dat1)
 
 #Save data to Rdata file
 save.image('Robinson/Data/cleanedV3.Rdata') #Cleaned data + helper functions
+
