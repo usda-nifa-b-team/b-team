@@ -13,8 +13,96 @@ library(dplyr)
 
 load('Robinson/Data/cleanedV3.Rdata') # or load('Data/cleaned.Rdata')
 
-# TODO 
+# DONE 
 # figure out how to render with state x collector combo - create combined variable?
+
+renderAnything <- function(stProv, yr2make, repFor, subFold){
+ load('Robinson/Data/cleanedV3.Rdata') # or load('Data/cleaned.Rdata')
+  
+  dat <- dat %>% filter(state %in% stProv)
+  repFor <- str_replace(repFor, "\\|", "and") 
+    # mutate(output_file = str_replace(output_file, "\\|", "and")) # necessary step for weird names
+  rmarkdown::render(
+    input = "Robinson/templateSheetV3_TESTING.Rmd", # could replace this with function input too
+    output_file = str_c("reports_", yr2make, "/", stProv, "/", subFold, "/", str_replace_all(repFor, " ", "_"),"_",stProv, "_", yr2make,"_", "Summary.pdf"),
+    params = list(collectorName = repFor,
+                  state = stProv, 
+                  year = yr2make) 
+    )
+  }
+
+# 2026 - 2024 WA and BC reports 
+
+datWA <- dat %>% 
+  filter(state %in% "WA")
+
+datBC <- dat %>% 
+  filter(state %in% "BC")
+
+  # datWA_test <- datWA %>% semi_join(tibble(collector=unique(datWA$collector), names =unique(datWA$collector)) %>% 
+#   dplyr::filter(row_number()%in%c(1,2,3,4,5)))# name options
+
+wa24_collected <-
+datWA %>% st_drop_geometry() %>% 
+  group_by(collector, state) %>% 
+  summarise(n = n_distinct(genSpp, na.rm = T)) %>% ungroup() %>%
+  filter(n>0) %>% 
+  rename(stProv = state, repFor = collector) %>% 
+   mutate(yr2make = 2024,
+          subFold = "collected") %>% 
+  select(!n)
+
+wa24_non <- datWA %>% st_drop_geometry() %>% 
+  #filter(!(year %in% 2025)) %>% # avoiding blank reports for 2025 - but then won't have anything?
+  group_by(collector, state) %>% 
+  summarise(n = n_distinct(genSpp, na.rm = T)) %>% ungroup() %>% 
+  filter(n==0) %>% 
+  rename(stProv = state, repFor = collector) %>% 
+  mutate(yr2make = 2024, 
+         subFold = "noCurYear")%>% 
+  select(!n)
+
+#renderAnything(stProv = "WA", yr2make = 2024, repFor = "Alanna Jacob", subFold = "noCurYear")
+
+# DONE 
+# purrr::pwalk(wa24_collected, renderAnything) # with 2024 collections
+# 
+# purrr::pwalk(wa24_non, renderAnything) # without 2024 collections
+
+## BC 2024 ----
+
+bc24_collected <-
+  datBC %>% st_drop_geometry() %>% 
+  group_by(collector, state) %>% 
+  summarise(n = n_distinct(genSpp, na.rm = T)) %>% ungroup() %>%
+  filter(n>0) %>% 
+  rename(stProv = state, repFor = collector) %>% 
+  mutate(yr2make = 2024, 
+         subFold = "collected")%>% 
+  select(!n)
+
+bc24_non <- datBC %>% st_drop_geometry() %>% 
+  #filter(!(year %in% 2025)) %>% # avoiding blank reports for 2025 - but then won't have anything?
+  group_by(collector, state) %>% 
+  summarise(n = n_distinct(genSpp, na.rm = T)) %>% ungroup() %>% 
+  filter(n==0) %>% 
+  rename(stProv = state, repFor = collector) %>% 
+  mutate(yr2make = 2024,
+         subFold = "noCurYear")%>% 
+  select(!n)
+
+purrr::pwalk(bc24_collected %>% 
+               filter(row_number()>13), renderAnything) # with 2024 collections
+
+purrr::pwalk(bc24_non, renderAnything) # without 2024 collections
+
+
+# OLDER version
+# make named list of parameters for r markdown params - this will need to make sure there's more than one observation possible
+# reports <- tibble( 
+#   collec = tibble(names=unique(datWA_test$collector)),
+#   filename = stringr::str_c(str_replace_all(collec$names, " ", "_"), "Summary.pdf"),
+#   params = purrr::map(collec, ~ list(collectorName = .)))
 
 #DONE
 
@@ -59,12 +147,21 @@ load('Robinson/Data/cleanedV3.Rdata') # or load('Data/cleaned.Rdata')
 
   rmarkdown::render(
     input = "Robinson/templateSheetV3_TESTING.Rmd",
-    output_file = "testV3_ID.pdf",
-    params = list(collectorName = "Karleen Davis",
-                  state = "ID", 
+    output_file = "testV3_WA.pdf",
+    params = list(collectorName = "Anne Bulger",
+                  state = "WA", 
                   year = "2025")
   )
   
+load('Robinson/Data/cleanedV3.Rdata') # or load('Data/cleaned.Rdata')
+  rmarkdown::render(
+    input = "Robinson/templateSheetV3_TESTING.Rmd",
+    output_file = "testV3_BC.pdf",
+    params = list(collectorName = "Bonnie Zand",
+                  state = "BC", 
+                  year = "2024")
+  )
+
 load('Robinson/Data/cleanedV3.Rdata') # or load('Data/cleaned.Rdata')
 # dat is being overwritten in rmd and here
   rmarkdown::render(
@@ -88,6 +185,8 @@ reports <- tibble(
 # to run
 # 
 toRun <- reports %>% filter(row_number()%in%1)
+
+toRun$params
 
 # might be faster to do: 
 

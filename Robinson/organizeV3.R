@@ -204,8 +204,17 @@ wideTable <- function(d,countBy={{countBy}},countNum={{countNum}},nsplit=NA,colN
 #datNew <- readxl::read_xlsx("Robinson/Data/OBA_2018-2026_V1_15_02-09-2026.xlsx")
 #datNew %>% write_csv("Robinson/Data/OBA_2018-2026_V1_Feb9_2026.csv")
 
-# round 1 - import 
-dat1 <- read_csv("Robinson/Data/OBA_2018-2026_V1_Feb9_2026.csv") %>% 
+dat0 <- read_csv("Robinson/Data/occurrences_2026-03-04T19.44.19.csv") %>% # WA and BC 
+  rename(specificEpithetVolDet = speciesVolDet)
+# testing vs. main data
+# names(dat0) == names(dat1)
+# names(dat1)
+# dat0 %>% rbind(dat1)
+
+# round 1 - import
+
+dat1 <- dat0 %>% 
+  # read_csv("Robinson/Data/OBA_2018-2026_V1_15_02-09-2026.csv") %>% 
   mutate(uniqueID = row_number()) %>% 
   rename_with(.cols = everything(), .fn = make.names) %>% 
   dplyr::select(
@@ -445,7 +454,7 @@ rm(usCounties)
 
 bcRegions <- st_read("Robinson/Shapefiles/bcPoly/ABMS_LGL_ADMIN_AREAS_SVW/ABMS_LAA_polygon.shp") %>%
   mutate(county = AA_TYPE) %>% 
-  filter(AA_TYPE %in% c("Self-governing First Nations Area", "Regional District")) %>% # regional districts seem reasonable?
+  filter(AA_TYPE %in% c("Self-governing First Nations Area", "Regional District") | AA_NAME %in% "Northern Rockies Regional Municipality") %>% # regional districts seem reasonable?
   mutate(unitID = AA_ID, # convert to same format as OR counties
          instName = AA_NAME, 
          altName = AA_NAME, 
@@ -455,6 +464,8 @@ bcRegions <- st_read("Robinson/Shapefiles/bcPoly/ABMS_LGL_ADMIN_AREAS_SVW/ABMS_L
   st_transform(3643) %>%  #Transform to Oregon Lambert
   mutate(nRecords=sapply(st_contains(.,dat),length), #Number of bee specimens per county
          nFlwGenera=sapply(st_contains(.,dat),function(x) length(unique(na.omit(dat$genusPlant[x])))))
+
+#bcRegions2 <- st_read("Robinson/Shapefiles/bcPoly/BC_Regional_Districts_fixed_Geometries.gpkg")
 
 bcBorder <- st_read("Robinson/Shapefiles/bcProv/ABMS_PROVINCE_SP/ABMS_PROV_polygon.shp")
 
@@ -475,7 +486,7 @@ stateMatch <- dat %>%
 #   left_join(stateMatch %>% st_drop_geometry() %>% 
 #               select(uniqueID, instName:STUSPS))
 
-#writexl::write_xlsx(joinPls, "Robinson/Data/mismatchingPoints.xlsx")
+# writexl::write_xlsx(stateMatch %>% st_drop_geometry(), "Robinson/Data/mismatchingStatePoints.xlsx")
 
 if(nrow(stateMatch)>0){
   warning("These records have been removed because their recorded state does not match their point's location")
@@ -514,8 +525,40 @@ allEcoReg <- st_read("Robinson/Shapefiles/us_eco_l3_state_boundaries/us_eco_l3_s
   mutate(nRecords=sapply(st_contains(.,dat),length), #Number of bee specimens per ecoregion
          nFlwGenera=sapply(st_contains(.,dat),function(x) length(unique(na.omit(dat$genusPlant[x]))))) #Number of flower genera
 
-# ggplot(allEcoReg)+
-#   geom_sf()
+bcEcoProvinces <- 
+  st_read("Robinson/Shapefiles/bcPoly/BCGW_02001F02_1772923114638_7784/ERC_ECOPROVINCES_SP.gpkg") %>%
+  mutate(name = str_to_title(ECOPROVINCE_NAME), 
+         name = str_replace(name, "Mountains", "Mtns."), 
+         name = str_replace(name, "Southern", "S\\."), 
+         name = str_replace(name, "Northern", "N\\."),) %>% 
+  rename(NA_L3NAME = ECOPROVINCE_NAME, 
+         NA_L3CODE = ECOPROVINCE_CODE,
+         NA_L2CODE = PARENT_ECODIVISION_CODE,
+         L3_KEY = OBJECTID, 
+         geometry = geom) %>% 
+  mutate(NA_L2NAME = NA, NA_L1CODE = NA, NA_L1NAME = NA, 
+         EPA_REGION = NA,
+         STATE_NAME = "British Columbia", 
+         L2_KEY = NA, L1_KEY = NA,
+         STATEFP = "99_BC",
+         STUSPS = "BC",
+         US_L3CODE = NA_L3CODE) %>% 
+  select(!c(FEATURE_CODE, EFFECTIVE_DATE, EXPIRY_DATE, FEATURE_AREA_SQM, FEATURE_LENGTH_M, GEOMETRY.AREA,
+            GEOMETRY.LEN, SE_ANNO_CAD_DATA)) %>% 
+  st_transform(3643) %>% #Transform to Oregon Lambert
+  mutate(name=gsub(' and ',' & ',name)) %>% #Replace "and" with "&"
+  mutate(nRecords=sapply(st_contains(.,dat),length), #Number of bee specimens per ecoregion
+         nFlwGenera=sapply(st_contains(.,dat),function(x) length(unique(na.omit(dat$genusPlant[x]))))) #Number of flower genera
+
+
+sort(names(allEcoReg))
+sort(names(bcEcoProvinces))
+
+allEcoReg <- allEcoReg %>%
+  rbind(bcEcoProvinces) # ADDING BC ECOPROVINCES
+
+ # ggplot(allEcoReg)+
+ #  geom_sf()
 
 ecoRegSimplified <- allEcoReg %>% # make one multipolygon for all L3 ecoregions
   group_by(US_L3CODE, name, NA_L3CODE, NA_L3NAME, NA_L2CODE, NA_L2NAME, 
@@ -533,15 +576,58 @@ ecoRegSimplified <- allEcoReg %>% # make one multipolygon for all L3 ecoregions
 allEcoReg <- ecoRegSimplified # replace 
 
 #Overwrite county name using shapefiles, using lat/lon data from individual records (takes ~10 sec)
-countyMatch <- sapply(st_within(dat,allCounty),function(x) x) #Get county indices for locations
 
-if(any(!sapply(countyMatch,length)!=0)){
-  warning(paste0(sum(!sapply(countyMatch,length)!=0),' samples located outside of ', str_flatten(includedStates, collapse = ", "), " and British Columbia discarded"))
-  # ggplot()+ geom_sf(data=orCounties)+ #Map of samples outside Oregon
-  #   geom_sf(data=filter(dat,sapply(countyMatch,length)==0))+
-  #   geom_sf(data = usStates)
-  dat <- dat %>% filter(sapply(countyMatch,length)!=0)
+datWithin <- dat %>% 
+  st_filter(x = ., y = allCounty, .pred = st_within)
+
+datOut <- dat %>% anti_join(datWithin %>% st_drop_geometry()) %>% 
+  st_join(allCounty, st_nearest_feature) %>% 
+  mutate(ctyMatch = (county == altName)) 
+datOut2rem <- datOut %>% filter(ctyMatch == FALSE)
+
+if(nrow(datOut2rem)!=0){
+  warning(paste0(nrow(datOut2rem),' samples located outside of ', str_flatten(includedStates, collapse = ", "), " and British Columbia discarded"))
 }
+datOut <- datOut %>% 
+  filter(ctyMatch != FALSE) # 2 are still not joining (== FALSE) - on ferry?
+
+dat <- dat %>% anti_join(datOut2rem %>% st_drop_geometry()) %>% # removing ones above that can't be reconciled 
+  left_join(datOut %>% st_drop_geometry() %>% select(collector:family, altName)) %>% 
+  mutate(county = case_when(
+    is.na(altName) ~ county,
+    !is.na(altName) ~ altName )) %>% 
+  select(!altName)# only if joined - replace county
+
+# original - doesn't cooperate with points in water/at very edges
+# countyMatch <- sapply(st_within(dat,allCounty),function(x) x) #Get county indices for locations
+# ctyNon <- dat %>% filter(!sapply(countyMatch, length)!=0) %>% 
+#   st_join(allCounty) %>%
+#   st_transform(crs = 4326)
+
+# warning()
+# if(any(!sapply(countyMatch,length)!=0)){
+#   warning(paste0(sum(!sapply(countyMatch,length)!=0),' samples located outside of ', str_flatten(includedStates, collapse = ", "), " and British Columbia discarded"))
+#   # ggplot()+ geom_sf(data=orCounties)+ #Map of samples outside Oregon
+#   #   geom_sf(data=filter(dat,sapply(countyMatch,length)==0))+
+#   #   geom_sf(data = usStates)
+#   dat <- dat %>% filter(sapply(countyMatch,length)!=0)
+# }
+
+  # Some test maps for finding out why records were being removed 
+# library(leaflet)
+# ctyNon %>% 
+#   leaflet() %>% 
+#   addCircleMarkers(label = ~county) %>% 
+#   addPolygons(data = allCounty %>% st_transform(crs = 4326), label = ~altName) %>% 
+#   addProviderTiles("OpenStreetMap")
+# leaflet::leaflet(ctyNon %>% st_transform(crs = 4326) %>% filter(ctyMatch != TRUE)) %>%
+#   leaflet::addPolygons(data = allCounty %>% st_transform(crs = 4326) %>% filter(altName %in% "Island" )) %>% 
+#   #leaflet::addPolygons(data = bcRegions %>% st_transform(crs = 4326), label = ~instName) %>%  #%>% filter(AA_NAME!= "County of Cariboo")
+#   leaflet::addCircleMarkers() %>%
+#   leaflet::addProviderTiles("OpenStreetMap")
+# ggplot(usCountiesW)+
+#   geom_sf(data = bcRegions) #+
+#   geom_sf(data =bcBorder, color = "red", alpha = 0.25)
 
 # below doesn't work with NA for county, changed to missing text to get it to work
 dat <- dat %>% mutate(
@@ -549,11 +635,37 @@ dat <- dat %>% mutate(
                      .default = county)
 )
 
-if(any(sum(dat$county!=allCounty$altName[unlist(countyMatch)]))){
-  warning(paste0(sum(dat$county!=allCounty$altName[unlist(countyMatch)]),' recorded county names are not inside matching county borders. Changed to match counties.'))
-  dat$county <- allCounty$altName[unlist(countyMatch)]
+datCty <- dat %>% 
+  st_join(allCounty, st_within) %>% 
+  mutate(ctyMatch = (county == altName)) %>% 
+  mutate(ctyMatch = case_when(
+    state %in% "BC" ~ TRUE, .default = ctyMatch  ))
+
+ctyMismatchUS <- nrow(datCty %>% filter(ctyMatch!=TRUE))
+if(ctyMismatchUS>1){ 
+  warning(str_c(ctyMismatchUS, " recorded county names are not inside matching county borders. Changed to match counties."))
 }
+
+dat <- datCty %>% 
+  mutate(county = case_when(
+    ctyMatch == FALSE ~ altName, 
+    ctyMatch == TRUE ~ county )) %>%
+  select(collector:geometry)
+
+# Can test above worked with below:
+# dat %>% 
+#   st_join(allCounty, st_within) %>% 
+#   mutate(ctyMatch = (county == altName)) %>% 
+#   mutate(ctyMatch = case_when(
+#     state %in% "BC" ~ TRUE, .default = ctyMatch  )) %>% 
+#   filter(ctyMatch!= TRUE)
+# Original that didn't work very well for new states
+# if(any(sum(dat$county!=allCounty$altName[unlist(countyMatch)]))){
+#   warning(paste0(sum(dat$county!=allCounty$altName[unlist(countyMatch)]),' recorded county names are not inside matching county borders. Changed to match counties.'))
+#   dat$county <- allCounty$altName[unlist(countyMatch)]
+# }
 rm(countyMatch) # trying to minimize storage size
+rm(datCty)
 
 #Record singleton species for "awards" (only 1 specimen found)
 singles <- dat %>% st_drop_geometry() %>% group_by(genSpp) %>%
