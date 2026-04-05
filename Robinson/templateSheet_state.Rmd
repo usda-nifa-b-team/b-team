@@ -7,8 +7,6 @@ params:
   state: ""    
 title: "`r params$state` Summary Sheet"
 author: "Oregon Bee Atlas"
-
-
 geometry: margin=2cm
 header-includes:
 - \usepackage{booktabs}
@@ -25,6 +23,8 @@ header-includes:
 - \usepackage[normalem]{ulem}
 - \usepackage{makecell}
 - \usepackage{xcolor}
+editor_options: 
+  chunk_output_type: console
 ---
 
 ```{r setup, include=FALSE}
@@ -68,7 +68,7 @@ genusCertainty <- orFlora %>% filter(!is.na(orig1)) %>% group_by(gen) %>%
 
 # specialist bee list
 
-specBeesLookup <- read_csv("Robinson/Data/specialistBees.csv") %>% 
+specBeesLookup <- read_csv("Data/specialistBees.csv") %>% 
   separate_wider_delim(cols = `Genus (Subgenus) species`, delim = " ", names = c("genus", "subgenusSpp"), too_few = "align_start", too_many = "merge") %>% 
   separate_wider_delim(subgenusSpp, ") ", names = c("subgen", "spp"), too_few = "align_end") %>% 
   mutate(genSpp = str_c(genus, " ", spp))
@@ -297,7 +297,7 @@ famIdByYr <- familyLevYr %>% ungroup() %>%
     theme(axis.text.x = element_text(angle = 90 , vjust = 0.5, hjust=1), legend.position = "none")+
   scale_fill_manual(values = famCols)+
   labs(y = "% Identified to Species", x = "Family", fill = "")+
-  facet_wrap(~year, ncol = n_distinct(familyLevYr$year)/2)
+  facet_wrap(~year, ncol = ceiling(n_distinct(familyLevYr$year)/2))
 ```
 
 
@@ -311,8 +311,8 @@ famIdByYr <- familyLevYr %>% ungroup() %>%
 ```
 \section {Title Page}
 Example cover page image 
-```{r, out.width="65%", out.height= "65%"}
-#knitr::include_graphics("Bombus1_6.jpg" )
+```{r, out.width="70%", out.height= "70%"}
+knitr::include_graphics("P5300688.jpg" )
 ```
 \newpage
 \section {Introduction}

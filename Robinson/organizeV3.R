@@ -204,17 +204,19 @@ wideTable <- function(d,countBy={{countBy}},countNum={{countNum}},nsplit=NA,colN
 #datNew <- readxl::read_xlsx("Robinson/Data/OBA_2018-2026_V1_15_02-09-2026.xlsx")
 #datNew %>% write_csv("Robinson/Data/OBA_2018-2026_V1_Feb9_2026.csv")
 
-dat0 <- read_csv("Robinson/Data/occurrences_2026-03-04T19.44.19.csv") %>% # WA and BC 
-  rename(specificEpithetVolDet = speciesVolDet)
-# testing vs. main data
+#dat0 <- read_csv("Robinson/Data/occurrences_2026-03-04T19.44.19.csv") %>% # WA and BC 
+#  rename(specificEpithetVolDet = speciesVolDet)
+
+# testing vs. regular data
 # names(dat0) == names(dat1)
 # names(dat1)
 # dat0 %>% rbind(dat1)
 
 # round 1 - import
 
-dat1 <- dat0 %>% 
-  # read_csv("Robinson/Data/OBA_2018-2026_V1_15_02-09-2026.csv") %>% 
+dat1 <- 
+  #dat0 %>% 
+   read_csv("Robinson/Data/OBA_2018-2026_V1_15_02-09-2026.csv") %>% 
   mutate(uniqueID = row_number()) %>% 
   rename_with(.cols = everything(), .fn = make.names) %>% 
   dplyr::select(
