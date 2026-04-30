@@ -4,7 +4,8 @@ author: "Rowan R"
 date: "2025-12-07"
 output: 
   pdf_document:
-    extra_dependencies: ["float"]
+editor_options: 
+  chunk_output_type: console
 ---
 
 ```{r, include=FALSE}
@@ -35,7 +36,23 @@ singleEco <- datEcoR %>%
 singleEcoNoMissing <- singleEco %>% 
   st_drop_geometry() %>% 
   filter(!is.na(genSpp)) %>% 
-  filter(!is.na(plantGenSpp))
+  filter(!is.na(plantGenSpp)) %>% 
+  mutate(monthNum = as.numeric(month))
+
+splitSeasons <- function(df, earlyMid = 4, midLate = 7, seas = num1to3){
+  if(seas %in% 1){
+    dfO <- df %>% filter(monthNum < earlyMid)
+  }else if(seas %in% 2) {
+      dfO <- df %>% filter(between(x = monthNum, left = earlyMid, right = midLate))
+  }else if(seas %in% 3){
+      dfO <- df %>% filter(monthNum > midLate)
+    }else print("Not a recognized season, options are 1, 2, 3")
+  return(dfO)
+}
+
+ecot1 <- splitSeasons(singleEcoNoMissing, seas = 1)
+ecot2 <-  splitSeasons(singleEcoNoMissing, seas = 2)
+ecot3 <-  splitSeasons(singleEcoNoMissing, seas = 3)
 
 # Only use this data for doing interactions, not species overall etc. since males are removed
 singleEcoInt <- singleEcoNoMissing %>% 
@@ -45,7 +62,34 @@ singleEcoInt <- singleEcoNoMissing %>%
   group_by(name, genSpp, plantGenSpp, orig1) %>% # might adjust this later - using plant genus
   count()
 
-singleEcoPerPlnt <- perPlnt_df(singleEcoInt) 
+singleEcoPerPlnt <- perPlnt_df(singleEcoInt)
+
+singleEcoPerPlnt1 <- perPlnt_df(
+ ecot1 %>% 
+  filter(!is.na(genSpp)) %>% 
+  filter(!is.na(plantGenSpp)) %>% 
+  filter(!sex %in% c("Male", "male")) %>% # removing males for now - not informative for pollen
+  group_by(name, genSpp, plantGenSpp, orig1) %>% # might adjust this later - using plant genus
+  count()
+)
+
+singleEcoPerPlnt2 <- perPlnt_df(
+ ecot2 %>% 
+  filter(!is.na(genSpp)) %>% 
+  filter(!is.na(plantGenSpp)) %>% 
+  filter(!sex %in% c("Male", "male")) %>% # removing males for now - not informative for pollen
+  group_by(name, genSpp, plantGenSpp, orig1) %>% # might adjust this later - using plant genus
+  count()
+)
+
+singleEcoPerPlnt3 <- perPlnt_df(
+ ecot3 %>% 
+  filter(!is.na(genSpp)) %>% 
+  filter(!is.na(plantGenSpp)) %>% 
+  filter(!sex %in% c("Male", "male")) %>% # removing males for now - not informative for pollen
+  group_by(name, genSpp, plantGenSpp, orig1) %>% # might adjust this later - using plant genus
+  count()
+)
 
 ```
 
@@ -68,27 +112,146 @@ Total Plant species: `r nSppP_e`
 Total Bee-Plant Interactions: `r nInts_e`
 
 ```{r, include=FALSE}
-tCap <- str_c("Top Plant Species and Genera for Bee Richness in the ", x, " Ecoregion.") 
+tCap <- str_c("Top plant species/genera for bee richness in the ", x, " Ecoregion.") 
 ```
 
 \subsection {Top Plant Genera For Bee Richness}
-```{r, echo=FALSE, tab.cap= tCap}
-kable(slice_head(singleEcoPerPlnt %>% arrange(desc(nBeeSpp)) %>%ungroup() %>% select(!c(name, beeSpp)), n = 10))
-```
 
-\subsection {Most abundant bee species `r x` Ecoregion}
+```{r, echo=FALSE, tab.cap= str_c("To replace with below figure? ", tCap)}
+tpgen <- slice_head(singleEcoPerPlnt %>% arrange(desc(nBeeSpp)) %>%ungroup() %>% select(!c(name, beeSpp)) %>% 
+                  rename(`Plant Species` = plantGenSpp, Origin = orig1, `Number Bee Visits Observed` = nBees,`Bee Species` = nBeeSpp),  n = 10)
+
+flextable(tpgen) %>% 
+  italic(j = 1) %>%
+  align(part = "all", j = 2:4, align = "center")
+```
+\newpage
+
+```{r, echo=FALSE, fig.cap= tCap}
+
+ggplot(tpgen %>% rename(`Bee Species Observed` = `Bee Species`) %>% pivot_longer(cols = contains("Bee"), names_to = "Number", values_to = "val"), aes(x = `Plant Species`, y = `val`, fill = Origin))+
+  geom_col()+
+  facet_wrap(~Number, scales = "free_x")+
+  coord_flip()+
+  scale_fill_brewer(palette = "Paired")+
+  geom_text(aes(label = `val`), position = position_stack(vjust = 0.5))+
+  theme(axis.text.y = element_text(face = "italic"))+ 
+  labs(y = "Number")
+
+```
+\newpage
+
+\subsection {Top plant genera for bee richness, split by season}
 
 ```{r, include=FALSE}
-tcap_topb <- paste0("Most Abundant Bee Species of the ", x, " Ecoregion.")
+tpgen1 <- slice_head(singleEcoPerPlnt1 %>% arrange(desc(nBeeSpp)) %>%ungroup() %>% select(!c(name, beeSpp)) %>% 
+            rename(`Plant Species` = plantGenSpp, Origin = orig1, `Number Bee Visits Observed` = nBees,`Bee Species` = nBeeSpp) %>% 
+  mutate(seas = "Jan - March"), n = 10)
+
+tpgen2 <- slice_head(singleEcoPerPlnt2 %>% arrange(desc(nBeeSpp)) %>%ungroup() %>% select(!c(name, beeSpp)) %>% 
+            rename(`Plant Species` = plantGenSpp, Origin = orig1, `Number Bee Visits Observed` = nBees,`Bee Species` = nBeeSpp) %>% 
+              mutate(seas = "April - June"),  n = 10)
+  
+tpgen3 <- slice_head(singleEcoPerPlnt3 %>% arrange(desc(nBeeSpp)) %>%ungroup() %>% select(!c(name, beeSpp)) %>% 
+            rename(`Plant Species` = plantGenSpp, Origin = orig1, `Number Bee Visits Observed` = nBees,`Bee Species` = nBeeSpp) %>% 
+              mutate(seas = "July - October"),  n = 10)
+
+tpgenSeas <- rbind(tpgen1, tpgen2, tpgen3)
 ```
 
-```{r, tab.cap= tcap_topb}
-kable(slice_head(singleEcoNoMissing %>% 
-                   filter(!str_detect(genSpp, "spp\\.")) %>% 
-        group_by(genSpp) %>% 
-        count() %>%ungroup() %>% 
-        arrange(desc(n)), n = 10) )
+```{r, fig.height=6.5, fig.width = 10, fig.cap = str_c("Plant species that support the most bee species by season in the ", x, " Ecoregion.") }
+ggplot(tpgenSeas %>% rename(`Bee Spp. Detected` = `Bee Species`, `No. Bee Visits` = `Number Bee Visits Observed`) %>% pivot_longer(cols = contains("Bee"), names_to = "Number", values_to = "val") %>% 
+         mutate(seas = fct_relevel(as_factor(seas), "Jan - March", "April - June", "July - October")), aes(x = `Plant Species`, y = `val`, fill = Origin))+
+  geom_col()+
+  facet_wrap(~Number*seas, scales = "free")+
+  coord_flip()+
+  scale_fill_brewer(palette = "Paired")+
+  geom_text(aes(label = `val`), position = position_stack(vjust = 0.5))+
+  theme(axis.text.y = element_text(face = "italic"))+ 
+  labs(y = "Number")
+
 ```
+
+<!-- ```{r, include=FALSE} -->
+<!-- tcap_1 <- paste0("Top plant genera for bee richness in the ", x, " Ecoregion during winter and early spring (Jan - March).") -->
+<!-- tcap_2 <- paste0("Top plant genera for bee richness in the ", x, " Ecoregion during spring (April - June).") -->
+<!-- tcap_3 <- paste0("Top plant genera for bee richness in the ", x, " Ecoregion during Summer (July - October).") -->
+<!-- ``` -->
+
+<!-- ```{r, tab.cap= tcap_1} -->
+<!-- kable(slice_head(singleEcoPerPlnt1 %>% arrange(desc(nBeeSpp)) %>%ungroup() %>% select(!c(name, beeSpp)) %>%  -->
+<!--                   rename(`Plant Species` = plantGenSpp, Origin = orig1, `Number Bee Visits Observed` = nBees,`Bee Species` = nBeeSpp),  n = 10)) -->
+<!-- ``` -->
+
+<!-- ```{r, tab.cap= tcap_2} -->
+<!-- kable(slice_head(singleEcoPerPlnt2 %>% arrange(desc(nBeeSpp)) %>%ungroup() %>% select(!c(name, beeSpp)) %>%  -->
+<!--                   rename(`Plant Species` = plantGenSpp, Origin = orig1, `Number Bee Visits Observed` = nBees,`Bee Species` = nBeeSpp),  n = 10)) -->
+
+<!-- ``` -->
+
+<!-- ```{r, tab.cap= tcap_3} -->
+<!-- kable(slice_head(singleEcoPerPlnt3 %>% arrange(desc(nBeeSpp)) %>%ungroup() %>% select(!c(name, beeSpp)) %>%  -->
+<!--                   rename(`Plant Species` = plantGenSpp, Origin = orig1, `Number Bee Visits Observed` = nBees,`Bee Species` = nBeeSpp),  n = 10)) -->
+
+<!-- ``` -->
+\newpage
+\subsection {Most abundant bee species of the `r x` Ecoregion}
+
+```{r, include=FALSE}
+tcap_topb_1 <- str_c("Most abundant bee species of the ", x, " Ecoregion by season.")
+#tcap_topb_2 <- paste0("Most Abundant Bee Species of the ", x, " Ecoregion during spring (April - June).")
+#tcap_topb_3 <- paste0("Most Abundant Bee Species of the ", x, " Ecoregion during Summer (July - October).")
+```
+
+```{r, fig.cap= tcap_topb_1, fig.width= 9.5, fig.height = 4}
+abun1 <- slice_head(ecot1 %>% filter(!str_detect(genSpp, "spp\\.")) %>% group_by(genSpp, family) %>% count() %>% 
+                   ungroup() %>% arrange(desc(n)) %>% rename(Species = genSpp, Observations = n) %>% 
+                     mutate(seas = "Jan - March"), n = 10)
+
+abun2 <- slice_head(ecot2 %>% filter(!str_detect(genSpp, "spp\\.")) %>% group_by(genSpp, family) %>% count() %>% 
+                   ungroup() %>% arrange(desc(n)) %>% rename(Species = genSpp, Observations = n) %>% 
+                     mutate(seas = "April - June"), n = 10) 
+
+abun3 <- slice_head(ecot3 %>% filter(!str_detect(genSpp, "spp\\.")) %>% group_by(genSpp, family) %>% count() %>% 
+                   ungroup() %>% arrange(desc(n)) %>% rename(Species = genSpp, Observations = n) %>% 
+                     mutate(seas = "July - October"),          n = 10)
+
+abunAll <- rbind(abun1, abun2, abun3)
+
+famColSimple_df <- tibble(cols=c(brewer.pal(5,'Set1'), "black"), 
+                  family = c('Andrenidae','Apidae','Colletidae',
+                           'Halictidae','Megachilidae', "Melittidae"))
+
+famColSimple <- as.character(famColSimple_df$cols)
+names(famColSimple) <- famColSimple_df$family
+
+ggplot(abunAll, aes(x = Species, y = Observations, fill = family ))+
+  geom_col()+
+  scale_fill_manual(values = famColSimple)+
+  coord_flip()+
+  theme(axis.text.y = element_text(face = "italic"))+
+  labs(fill = "Bee Family")+
+  facet_wrap(~seas, scales = "free")
+```
+
+<!-- ```{r, tab.cap= tcap_topb_1} -->
+<!-- kable(slice_head(ecot1 %>% filter(!str_detect(genSpp, "spp\\.")) %>% group_by(genSpp) %>% count() %>%  -->
+<!--                    ungroup() %>% arrange(desc(n)) %>% rename(Species = genSpp, Observations = n),  -->
+<!--                  n = 10) ) # REPLACED WITH ABOVE FIGURES -->
+<!-- ``` -->
+
+<!-- ```{r, tab.cap= tcap_topb_2} -->
+<!-- kable(slice_head(ecot2 %>% filter(!str_detect(genSpp, "spp\\.")) %>% group_by(genSpp) %>% count() %>%  -->
+<!--                    ungroup() %>% arrange(desc(n)) %>% rename(Species = genSpp, Observations = n),  -->
+<!--                  n = 10) ) -->
+<!-- ``` -->
+
+<!-- ```{r, tab.cap= tcap_topb_3} -->
+<!-- kable(slice_head(ecot3 %>% filter(!str_detect(genSpp, "spp\\.")) %>% group_by(genSpp) %>% count() %>%  -->
+<!--                    ungroup() %>% arrange(desc(n)) %>% rename(Species = genSpp, Observations = n),  -->
+<!--                  n = 10) ) -->
+<!-- ``` -->
+
 
 ```{r, include=FALSE}
 # side by side per county? with county highlighted
@@ -96,28 +259,49 @@ ecor2highlight <- stateChao_ecoreg %>% filter(name %in% x) %>%
   mutate(gap = as.character(round(Estimator - Observed), 0))
 
 # make figure caption
-fCap <- paste0("Top: Observed Species in the ", x, " Ecoregion.", " Bottom: Number of Additional Species Expected in the ", x, " Ecoregion.")
+fCap <- str_c("Number of detected bee species highlighted for the ", x, " Ecoregion.")
 ```
-\subsection {Bee Richness Highlighted for the `r x` Ecoregion}
-```{r, fig.height=8, fig.cap= fCap, fig.pos= "H", out.extra= ""}
-cowplot::plot_grid(
-actualStateRich(stateChao_ecoreg)+
-  scale_fill_gradient2(low = "white", 
+\newpage
+
+```{r, include = FALSE} 
+ecoQuad <- st_centroid(stateChao_ecoreg) %>% st_join(quadrants, st_within) %>% print(n = 40) %>% 
+  select(name, NA_L3NAME, quad) %>% st_drop_geometry()
+
+stateChao_ecoreg <- stateChao_ecoreg %>% left_join(ecoQuad)
+whichEcoQuad <- ecor2highlight %>% left_join(ecoQuad) %>% pull(quad)
+ecorSubset <- stateChao_ecoreg %>% ungroup() %>% st_filter(., ecor2highlight, .predicate = st_intersects)
+```
+
+```{r, fig.height=8, fig.cap= fCap}
+ecoSppPlot <- actualStateRich(stateChao_ecoreg)+
+  scale_fill_gradient2(low = "white",
                        mid = '#f1eef6',
                        high = '#045a8d')+
   geom_sf(data = ecor2highlight, colour = "green", alpha = 0, size = 1)+
-    geom_sf_text(data = ecor2highlight, aes(label = Observed), size = 2)+
-    labs(x = "", y = "") , 
-gapStateRich(stateChao_ecoreg)+
-  scale_fill_gradient2(low = "white", 
-                       mid = '#ffffcc',
-                       high = '#bd0026')+
-  geom_sf(data = ecor2highlight, colour = "green", alpha = 0, size = 1)+
-  geom_sf_text(data = ecor2highlight, aes(label = gap), size = 2)+
-  labs(x = "", y = ""),
+    labs(x = "", y = "")+
+  geom_sf(data = datEcoR %>% filter(name %in% x), size = 0.75)+
+  geom_sf_text(data = ecor2highlight, aes(label = Observed), size = 4, color = "yellow")
 
-nrow = 2
-)
+ecoSppPlot
+
+# cowplot::plot_grid(
+# actualStateRich(stateChao_ecoreg)+
+#   scale_fill_gradient2(low = "white", 
+#                        mid = '#f1eef6',
+#                        high = '#045a8d')+
+#   geom_sf(data = ecor2highlight, colour = "green", alpha = 0, size = 1)+
+#     geom_sf_text(data = ecor2highlight, aes(label = Observed), size = 2)+
+#     labs(x = "", y = "") , 
+# gapStateRich(stateChao_ecoreg)+
+#   scale_fill_gradient2(low = "white", 
+#                        mid = '#ffffcc',
+#                        high = '#bd0026')+
+#   geom_sf(data = ecor2highlight, colour = "green", alpha = 0, size = 1)+
+#   geom_sf_text(data = ecor2highlight, aes(label = gap), size = 2)+
+#   labs(x = "", y = ""),
+# 
+# nrow = 2
+# )
 ```
 
 \subsection {Uncommon Bee Species for the `r x` Ecoregion}
@@ -127,10 +311,53 @@ tcap_unc <- paste0("Bees with less than 15 project-wide observations, and less t
 
 
 ```{r, tab.cap= tcap_unc}
-kable(singleEcoNoMissing %>% 
+uncft <- flextable(singleEcoNoMissing %>% 
   group_by(genSpp) %>% 
   count() %>% ungroup() %>% 
-  semi_join(below15_proj, by = "genSpp")
-  )
+  semi_join(below15_proj, by = "genSpp") %>% 
+    rename(`Bee Species` = genSpp, Observations = n)
+  ) %>% 
+  italic(j = 1) %>% 
+  fontsize(size = 10) %>% 
+  align( j = 2, align = "center", part = "all") %>% 
+  autofit()
+
+# uncftwids <- dim(uncft)$widths/sum(dim(uncft)$widths)*6.5
+# 
+# uncft <- width(uncft, width = uncftwids)
+uncft
+```
+
+#### Known Specialist Bee Species present in the `r x` Ecoregion
+
+
+
+Additional specialist bees are likely present, but this information is not always well known. If females of a bee species tend to only collect pollen from a certain species, genus, or family of plant but are not present on this list, the bee may be a yet to be described specialist.  
+
+```{r, tab.cap= str_c("Specialist bees present in ", x, " Ecoregion, with the number of times each species has been observed, its relative rarity, and known floral hosts.")}
+library(flextable)
+
+specft <- flextable(singleEcoNoMissing %>% group_by(genSpp) %>% count() %>% ungroup() %>%  
+         semi_join(specBeesLookup) %>% left_join(specBeesLookup %>% select(genSpp, Status, `Host plant Family Tribe Genera`)) %>% 
+  rename(`Bee Species` = genSpp, Obs. = n, Rarity = Status, `Floral Hosts (Literature - Fowler, 2026)` = `Host plant Family Tribe Genera` )) 
+
+specft  <- autofit(specft)
+auto_wid <- dim(specft)$widths/sum(dim(specft)$widths)
+auto_wid[1] <- 1.5
+auto_wid[2] <- 0.5
+auto_wid[3] <- 1
+auto_wid[4] <- 3.5 # specify widths - auto isn't working for this case
+
+specft <- width(specft, width = auto_wid)
+
+library(officer)
+inBorder <- fp_border(color = "lightgrey", width = 0.5)
+
+specft %>% 
+  italic( j = 1) %>% 
+  align(j = 2, align = "center", part = "all") %>% 
+  fontsize(size = 9, part = "body") %>% 
+  fontsize(size = 10, part = "header") %>% 
+  border_inner_h(border = inBorder, part = "body") 
 ```
 

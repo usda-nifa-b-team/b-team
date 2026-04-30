@@ -2,7 +2,6 @@
 output:
   pdf_document:
     keep_tex: false
-    extra_dependencies: ["float"]
 params: 
   state: ""    
 title: "`r params$state` Summary Sheet"
@@ -14,7 +13,6 @@ header-includes:
 - \usepackage{array}
 - \usepackage{multirow}
 - \usepackage{wrapfig}
-- \usepackage{float}
 - \usepackage{colortbl}
 - \usepackage{pdflscape}
 - \usepackage{tabu}
@@ -45,7 +43,7 @@ library(cowplot)
 
 #knitr options
 opts_chunk$set(echo = FALSE, eval = TRUE, warning = FALSE, message = FALSE)
-opts_knit$set(eval.after = "fig.cap")
+#opts_knit$set(eval.after = "fig.cap")
 options(dplyr.summarise.inform=FALSE, warn=-1) #Suppress warnings
 theme_set(theme_classic())
 ```
@@ -68,11 +66,10 @@ genusCertainty <- orFlora %>% filter(!is.na(orig1)) %>% group_by(gen) %>%
 
 # specialist bee list
 
-specBeesLookup <- read_csv("Data/specialistBees.csv") %>% 
+specBeesLookup <- read_csv("Data/specialistBees_Fowler_J_2026.csv") %>% 
   separate_wider_delim(cols = `Genus (Subgenus) species`, delim = " ", names = c("genus", "subgenusSpp"), too_few = "align_start", too_many = "merge") %>% 
   separate_wider_delim(subgenusSpp, ") ", names = c("subgen", "spp"), too_few = "align_end") %>% 
   mutate(genSpp = str_c(genus, " ", spp))
-
 
 # datFlora <- dat %>% st_drop_geometry() %>% left_join(orFlora %>% filter(Name_Status %in% "Accepted")) %>% 
 #   left_join(genusCertainty %>% select(!n)) %>% 
@@ -99,7 +96,7 @@ ecoRegS_namesForState <- ecoRegSimplified %>%
 # filter to state
 
 datSt <- dat %>% 
-   st_join(ecoRegS_namesForState %>% select(STUSPS, geometry), st_within) %>% 
+   st_join(ecoRegS_namesForState %>% select(STUSPS, STATE_NAME, geometry), st_within) %>% 
   filter(STUSPS%in% params$state) %>% # fixes the out of state points for now
 select(!STUSPS) %>% 
   filter(!is.na(genSpp)) %>% # no missing bee IDs currently - this is built into downstream code already 
@@ -115,9 +112,8 @@ select(!STUSPS) %>%
     .default = orig1
   ))
 
-
+stateName <- unique(datSt$STATE_NAME)
 ```
-
 
 ```{r setup fxns, include=FALSE}
 ## Statewide Summary Setup ----
@@ -174,7 +170,8 @@ actualStateRich <- function(df){
 
 estStateRich <- function(df){
   return(ggplot(df)+
-           geom_sf(aes(fill = Estimator))
+           geom_sf(aes(fill = Estimator))+
+           labs(fill = "Estimated")
          
          )
   #+)
@@ -201,6 +198,51 @@ gapStateRich_focus <- function(df){
 ```{r setup chao state, include=FALSE}
 #debugonce(addChao2State)
 stateChao <- addChao2State(datSt, state2do = params$state )
+```
+
+```{r setup - quadrants}
+maxMinState <- st_bbox(stateChao)
+
+boundState <- st_as_sfc(maxMinState)
+
+stateCen <- st_centroid(boundState)
+
+cenCoord <- tibble(lon = st_coordinates(stateCen)[[1]], lat = st_coordinates(stateCen)[[2]], 
+                  pnt = "centre" )
+# NW upr = ymax, xmin,
+
+ nw <- tibble(
+  lon = maxMinState$xmin, lat = maxMinState$ymax, pnt = "NW" ) %>% 
+  rbind(cenCoord) %>% 
+  st_as_sf(coords = c("lon", "lat"), crs = st_crs(stateChao)) %>% 
+  st_bbox() %>% st_as_sfc() %>% st_as_sf() %>% mutate(quad = "NW")
+
+# NE upr = xmax, ymax
+
+ne <- tibble(
+  lon = maxMinState$xmax, lat = maxMinState$ymax, pnt = "NE" ) %>% 
+  rbind(cenCoord) %>% 
+  st_as_sf(coords = c("lon", "lat"), crs = st_crs(stateChao)) %>% 
+  st_bbox() %>% st_as_sfc() %>% st_as_sf() %>% mutate(quad = "NE")
+
+# SW lwr = xmin, ymin
+
+sw <- tibble(
+  lon = maxMinState$xmin, lat = maxMinState$ymin, pnt = "SW" ) %>% 
+  rbind(cenCoord) %>% 
+  st_as_sf(coords = c("lon", "lat"), crs = st_crs(stateChao)) %>% 
+  st_bbox() %>% st_as_sfc() %>% st_as_sf() %>% mutate(quad = "SW")
+
+# SE lwr = xmax, ymin
+
+se <- tibble(
+  lon = maxMinState$xmax, lat = maxMinState$ymin, pnt = "SE" ) %>% 
+  rbind(cenCoord) %>% 
+  st_as_sf(coords = c("lon", "lat"), crs = st_crs(stateChao)) %>% 
+  st_bbox() %>% st_as_sfc() %>% st_as_sf() %>% mutate(quad = "SE")
+
+quadrants <- se %>% rbind(nw, ne, sw)
+
 ```
 
 
@@ -311,7 +353,7 @@ famIdByYr <- familyLevYr %>% ungroup() %>%
 ```
 \section {Title Page}
 Example cover page image 
-```{r, out.width="70%", out.height= "70%"}
+```{r, out.width="90%", dpi = 200}
 knitr::include_graphics("P5300688.jpg" )
 ```
 \newpage
@@ -319,49 +361,123 @@ knitr::include_graphics("P5300688.jpg" )
 
 Things to introduce here such as: 
 
-  Bee atlas background
-    The Oregon Bee Atlas is a project of the Department of Agriculature at Oregon State University.  
+#### Oregon Bee Atlas Background
+
+The Oregon Bee Atlas is a project of the Department of Agriculture at Oregon State University.  
   
-  Contributors
+#### Contributors
   Lincoln Best, Andony Melathopoulos, Antranig Basman, Samuel V. J. Robinson, Rowan Rampton, August Jackson, Olivia - , 
   Other bee atlas members? Caleb, Bonnie
   Anyone else?
   The many volunteers that collect the bees that make this dataset possible, plus those who conduct outreach or support the project in any other way. 
   
-  Funders
+#### Funders
   This project is funded in part by a USDA NIFA Grant 
   
-  Data information
+#### Data information
   
-  Data is curated by Lincoln Best, Myles Scholz, others?
+Data is curated by Lincoln Best, Myles Scholz, others?
   
-  Use of the data or any component of this report is encouraged, but must acknowledge the authors through citation or acknowledgement. 
+Use of the data or any component of this report is encouraged, but must acknowledge the authors through citation or acknowledgement. 
+
+#### Suggested citations:
   
-  Suggested citations:
+Report contents: Rampton, Best, Melathopoulos, Jackson, Robinson
   
-  Report contents: Rampton, Best, Melathopoulos, Jackson, Robinson
-  
-  Bee atlas data: Best, Melathopoulos, ADD REST , year, other. 
-  
-  Analysis caveats
-  Bee identification is a challenging and time-consuming process. Many bees in the collection have not yet been identified to species. Some very rare species may be present within these unidentified species, but there may also be relatively common bee species that are challenging to identify. As such, some bee-plant interactions may currently be over represented in Ecoregion and County totals. This is likely most applicable to *Bombus* species, nearly all of which are identified to species and are also abundant in the data. Similarly, not all plant species have been identified to species.    
-  
+Bee atlas data: Best, Melathopoulos, ADD REST , year, other.
+
+\subsection {Citations}
+```{r, echo=FALSE, include = FALSE}
+citation("tidyverse")
+citation()
+```
+
+R 
+Tidyverse
+rmarkdown
+iNEXT
+
+
 \newpage
+
+## Sampling Effort and Species Richness
+
+Ecologists often divide areas into regions based on combinations of shared factors that can include geography, geology, and climate. These shared factors are expected to produce a similar range of ecological conditions across the range of habitats within the region, and help to group areas based on expected species and ecological patterns. This includes the expected bee species diversity, and the diversity of their floral hosts. For the United States, several levels of ecoregions divide regions by ecological similarity. This report provides summaries for level three ecoregions, which generally represent portions of states, but are not necessarily contained within a single state. This report also provides summaries for each county in the state.  
+
+Sampling effort and bee diversity are sometimes, but not always related. Sampling effort is not often distributed equally across the landscape, since many areas can be any combination of legally, physically, or logistically inaccessible. Even when areas are only relatively inaccessible, they are likely to undergo less sampling. Sampling effort provides the opportunity to detect a given bee, but only if the bee was present to detect. Since bees vary in their preference for certain habitats, a unit of sampling effort can produce a vastly different bee sample depending on where it took place. The following maps provide a summary of this relationship and represent an estimation of how many of the possible bee species in an area have been detected by the current sampling effort. In general, bee diversity generally increases where habitats are warmer and drier. 
+
+The following species richness maps show respectively variation in detected species richness across the ecoregions of Oregon, an estimate of the total number of species present, and the difference between number of species expected (estimated) and number of species observed so far. 
+
+Areas with large differences between estimated species richness and observed species richness are ideal locations for additional sampling. More sampling in these areas has the potential to produce additional species, and improve confidence in measures of species diversity. 
+
+```{r, include=FALSE}
+#DONE - right now species numbers are without genus spp., chao estimates are with genus spp. - need to resolve
+ # actually problem is that species numbers exclude missing plants - fixed for now, see notes in renderRmdV3
+
+# make fig cap
+```
+
+```{r actFig, fig.cap= "Actual Observed Bee Species Richness.", include=FALSE}
+actP <- actualStateRich(stateChao)+
+  scale_fill_gradient2(low = "white", 
+                       mid = '#f1eef6',
+                       high = '#045a8d')
+```
+
+```{r estFig, include=FALSE}
+estP <- estStateRich(stateChao)+
+  scale_fill_gradient2(low = "white", 
+                       mid = '#ffffcc',
+                       high = '#bd0026')
+
+```
+
+```{r expFig, include=FALSE}
+gapP <- gapStateRich(stateChao)+
+  scale_fill_gradient2(low = "white", 
+                       mid = '#ffffcc',
+                       high = '#984EA3')
+
+fig1 <- str_c("Counties of ", stateName,".", " Top: Number bee species detected, Middle: Estimated bee species Present, Bottom: Estimated - detected species (in other words, how many more species do we expect to find with increased sampling effort).")
+
+allP <- cowplot::plot_grid(actP, estP, gapP, nrow = 3)
+```
+
+
+```{r fig.height=9, fig.width= 7.25, fig.cap= fig1 }
+allP
+```
+
+
+\newpage
+
+## Analysis caveats
+
+Bee identification is a challenging and time-consuming process. Many bees in the collection have not yet been identified to species. Some very rare species may be present within these unidentified species, but there may also be relatively common bee species that are challenging to identify. As such, some bee-plant interactions may currently be over represented in Ecoregion and County totals. This is likely most applicable to *Bombus* species, nearly all of which are identified to species and are also abundant in the data. Similarly, not all plant species have been identified to species, with one possible consequence being that readily identifiable floral hosts are likely to be somewhat over-represented in lists of most visited flower taxa. 
+
+When few of the rare bee species are identified to species, the species richness maps above may underestimate the expected total species richness, as these estimates are generated in part by the quantity of species that are only observed one or a few times. If common species have been identified, but rare species have not, species richness will be underestimated. Whether this is the case remains to be seen, but this phenomenon appears to be happening in southeast Oregon, where additional taxonomic effort may be required to identify unfamiliar species, as current richness and estimated richness are low relative to what professional judgement says should have high bee diversity likely with unique species that reach the northern edges of their range limits in the region.     
+
+
 ```{r famID plot, fig.width=7, fig.height= 5, fig.cap= "Proportion of each bee family identified to species, by year"}
 
 famIdByYr
 
 ```
 
+
 ```{r genID plot, fig.width=7, fig.height= 7, fig.cap= "Proportion of each bee genus identified to species"}
 genusIdedPlot
 ```
 
-\subsection {Citations}
-```{r, echo=FALSE}
-citation("tidyverse")
-citation()
-```
+\newpage
+## How to use this guide 
+
+Putting known issues here for now:
+
+- italicize species names in all tables, table formatting generally 
+
+- fix county map figure caption spacing 
+
 
 \newpage
 \section{State Totals}
@@ -380,55 +496,92 @@ nPlntSpp <- datSt %>% st_drop_geometry() %>% group_by(plantGenSpp) %>% summarise
   
 ```
 
-A total of `r nSpp` bee taxa have been identified among specimens submitted by volunteers to the `r params$state` Bee Atlas. There have been a total of `r nObs` bees collected by `r nCol` individual collectors, from `r nPlntSpp` unique plant taxa. 
+A total of `r nSpp` bee taxa have been identified among specimens submitted by volunteers to the `r stateName` Bee Atlas. There have been a total of `r nObs` bees collected by `r nCol` individual collectors, from `r nPlntSpp` unique plant taxa. 
 
 \section{State Species List - example of first 10 rows for now}
 ```{r, tab.cap= "State Species List"}
-sppList <- slice_head(sppList %>% ungroup(), n = 10 )
-kable(sppList)
+sppList <- slice_head(sppList %>% ungroup() %>% rename(`Bee Species` = genSpp, Observations = n), n = 10 )
+sppLft <- flextable(sppList) %>% 
+  italic(j = 1) %>% 
+  fontsize(size = 10)
+sppLft <- autofit(sppLft)
+sppLft %>% align(j = 2, part = "all", align = "center")
+```
+
+\section{State Ecoregions - Summary}
+
+```{r chao for ecoregions, include=FALSE}
+# debugonce(addChao2State)
+stateChao_ecoreg <- addChao2State(datEcoR, state2do = params$state, varName = name )
+```
+
+```{r, tab.cap= "Summary of bee collections by ecoregion"}
+ecoRegArea <- datEcoR %>%   
+  st_drop_geometry() %>% 
+  group_by(NA_L3NAME) %>% 
+  summarise(`Bee Species` = n_distinct(genSpp), 
+            `Plant Species` = n_distinct(plantGenSpp), 
+            `Bees Collected` = n(), 
+            Collectors = n_distinct(collector)) %>% 
+  rename(Ecoregion = NA_L3NAME)
+
+erft <- flextable(ecoRegArea) %>% 
+  autofit()
+auto_wid <- (dim(erft)$widths/sum(dim(erft)$widths))*6.5
+
+erft <- width(erft, width = auto_wid)
+
+erft %>% 
+    align(part = "all", j = 2:5, align = "center")
+
+```
+
+```{r, fig.height= 4, fig.width= 8, fig.cap= str_c("Observed and estimated species richness for the ", x , " Ecoregion. Bars show the number of species currently observed, blue points with associated error bars show estimated species species richness and a 95% confidence interval in the estimate.") }
+
+stateChao_ecoreg %>% st_drop_geometry() %>% 
+  ggplot(aes(x = name, y = Observed))+
+  geom_col(width = 0.5, fill = "darkslategray4")+
+  geom_errorbar(aes(ymin = X95..Lower, ymax = X95..Upper), width = 0.25)+
+  geom_point(aes(y = Estimator), color = "blue", size = 3)+
+  coord_flip()+
+  labs(x = "Ecoregion", y = "Species")
 ```
 
 
 ```{r, include=FALSE}
-#TODO - DONE - right now species numbers are without genus spp., chao estimates are with genus spp. - need to resolve
- # actually problem is that species numbers exclude missing plants - fixed for now, see notes in renderRmdV3
+child_section_title <- ""
 
-# make fig cap
+ecor2make <- 
+  stateEcoReg %>% 
+  st_drop_geometry() %>% 
+  group_by(name) %>% summarise() %>%
+  pull(name)
+
+ecor2make <- ecor2make[1:3] # TODO - for speed during testing, remove later
 ```
 
-```{r actFig, include=FALSE}
-actP <- actualStateRich(stateChao)+
-  scale_fill_gradient2(low = "white", 
-                       mid = '#f1eef6',
-                       high = '#045a8d')
-```
-\newpage
-\section{State Sampling Needs}
-Areas with large differences between estimated species richness and observed species richness are ideal locations for additional sampling. More sampling in these areas has the potential to produce additional species, and improve confidence in measures of species diversity. 
-
-```{r expFig, include=FALSE}
-gapP <- gapStateRich(stateChao)+
-  scale_fill_gradient2(low = "white", 
-                       mid = '#ffffcc',
-                       high = '#bd0026')
-
-fig1 <- str_c("Counties of ", params$state,".", " Top: Observed Bee Species, Bottom: Expected Bee Species.")
-
-allP <- cowplot::plot_grid(actP, gapP, nrow = 2)
+```{r}
+knit_child_with_params <- function(x){
+  child_section_title <- x
+  
+  knitr::knit_child(
+    "stateEcoregChild.Rmd", 
+    envir = environment(),
+    , quiet = TRUE) }
 ```
 
-
-
-```{r fig.height=8, fig.width= 7, fig.cap= fig1 }
-allP
+```{r, results = 'asis', warning=FALSE}
+res <- lapply(ecor2make, knit_child_with_params)
 ```
-
+```{r, results = 'asis',  warning=FALSE}
+cat(unlist(res), sep = "\n")
+```
 
 \newpage
 \section {State Counties - Summary}
 
 ```{r, include=FALSE}
-cSumCap <- paste0("Specimens Collected, Species Present, and Collectors per County in ", params$state, ".")
+cSumCap <- paste0("Bee collection summaries by county of ", stateName, ".")
 ```
 
 ```{r, tab.cap= cSumCap  }
@@ -438,12 +591,17 @@ countySummaryTable <- datSt %>% semi_join(allCounty %>% st_drop_geometry() %>% f
   summarise(`Bee Species` = n_distinct(genSpp), 
             `Plant Species` = n_distinct(plantGenSpp), 
             `Bees Collected` = n(), 
-            Collectors = n_distinct(collector))
+            Collectors = n_distinct(collector)) %>% 
+  rename(County = county)
 
-kable(countySummaryTable)
+# kable(countySummaryTable)
+
+flextable(countySummaryTable) %>% 
+  fontsize(size = 10) %>% 
+  align(part = "all", j = 2:5, align = "center")
 ```
 \newpage
-# By County Summaries
+# County Summaries
 Bee and plant species richness, observed bee-plant interactions, and the plant species/genera that supported the most bee species are summarized below for each county, along with maps of observed and expected species richness. 
 
 Note that some invasive weeds can support significant bee diversity and abundance. When picking plants to support bees, consider replacing exotic species with a functionally equivalent native plant species. Functionally equivalent species should have similar flower structure, similar flower color, and produce flowers during the same part of the year as the exotic species they will be replacing. 
@@ -474,57 +632,8 @@ resC <- lapply(county2make, knit_child_with_params_county)
 ```{r, results = 'asis',  warning=FALSE}
 cat(unlist(resC), sep = "\n")
 ```
-\newpage
-\section{State Ecoregions - Summary}
-
-```{r chao for ecoregions, include=FALSE}
-# debugonce(addChao2State)
-stateChao_ecoreg <- addChao2State(datEcoR, state2do = params$state, varName = name )
-```
-
-```{r}
-ecoRegArea <- datEcoR %>%   
-  st_drop_geometry() %>% 
-  group_by(NA_L3NAME) %>% 
-  summarise(`Bee Species` = n_distinct(genSpp), 
-            `Plant Species` = n_distinct(plantGenSpp), 
-            `Bees Collected` = n(), 
-            Collectors = n_distinct(collector)) 
-
-kable(ecoRegArea)
-```
-
-```{r, include=FALSE}
-child_section_title <- ""
-
-
-
-ecor2make <- 
-  stateEcoReg %>% 
-  st_drop_geometry() %>% 
-  group_by(name) %>% summarise() %>%
-  pull(name)
-
-ecor2make <- ecor2make[1:3] # TODO - for speed during testing, remove later
-```
-
-```{r}
-knit_child_with_params <- function(x){
-  child_section_title <- x
-  
-  knitr::knit_child(
-    "stateEcoregChild.Rmd", 
-    envir = environment(),
-    , quiet = TRUE) }
-```
-
-```{r, results = 'asis', warning=FALSE}
-res <- lapply(ecor2make, knit_child_with_params)
-```
-```{r, results = 'asis',  warning=FALSE}
-cat(unlist(res), sep = "\n")
-```
 
 ```{r}
 options(warn=0) #Turn warnings back on
 ```
+

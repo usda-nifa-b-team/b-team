@@ -111,7 +111,7 @@ data <- datS %>% filter(!is.na(genus)) %>% filter(!is.na(family)) %>% # do pre f
   filter(samplingProtocol == "aerial net") %>% # only netted bees
   filter(!is.na(day)) # remove missing dates - only 1 present in 2023 filter(year %in% 2023)
 
-dataNoNA <- data %>% filter(year %in% params$year) # data for 2023 only
+dataNoNA <- data %>% filter(year %in% params$year) # data for year of interest only
 
 #Get top 3 (species richness) collectors
 top3Spp <- dataNoNA %>% st_drop_geometry() %>% group_by(collector) %>%
@@ -187,7 +187,7 @@ textSizeA[3] <- 1.1 #Make family labels larger
 ```
 \section{Your `r params$year` Collections}
 
-`r if_else(nrow(volDat)==0, true = str_c(params$collectorName, " caught ", nrow(volIdTBA_curYear),  if_else(nrow(volIdTBA_curYear)==1, " bee", " bees"), " in ", params$year, if_else(nrow(volIdTBA_curYear)==0, ".", str_c("but none have currently been identified to species. Identifying the ", nrow(datS %>% filter(year%in%params$year)), " bees caught in ", params$year, " takes a long time!"))), false = str_c(params$collectorName, " caught ", nrow(volDat), " bees across ", length(unique(volDat$county)), " ", ifelse(length(unique(volDat$county))>1, regVarPlural, regVar), " from ", format(min(na.omit(volDat$date)),format="%B %d, %Y"), " to ", format(max(na.omit(volDat$date)), format="%B %d, %Y"), " representing ", length(unique(na.omit(volDat$genSpp))), " unique taxa, including ", length(unique(na.omit(volDat$genSpp[!grepl('spp\\.',volDat$genSpp)]))), " unique species."))`
+`r if_else(nrow(volDat)==0, true = str_c(params$collectorName, " caught ", nrow(volIdTBA_curYear),  if_else(nrow(volIdTBA_curYear)==1, " bee", " bees"), " in ", params$year, if_else(nrow(volIdTBA_curYear)==0, ".", str_c(" but none have currently been identified to species. Identifying the ", nrow(datS %>% filter(year%in%params$year)), " bees caught in ", params$year, " takes a long time!"))), false = str_c(params$collectorName, " caught ", nrow(volDat), " bees across ", length(unique(volDat$county)), " ", ifelse(length(unique(volDat$county))>1, regVarPlural, regVar), " from ", format(min(na.omit(volDat$date)),format="%B %d, %Y"), " to ", format(max(na.omit(volDat$date)), format="%B %d, %Y"), " representing ", length(unique(na.omit(volDat$genSpp))), " unique taxa, including ", length(unique(na.omit(volDat$genSpp[!grepl('spp\\.',volDat$genSpp)]))), " unique species."))`
 
 
 ```{r, out.width="100%", fig.cap = paste0("Bees caught by ", collString, ", broken down by species, genus, and family.")}

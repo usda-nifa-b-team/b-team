@@ -13,9 +13,8 @@ library(dplyr)
 
 load('Robinson/Data/cleanedV3.Rdata') # or load('Data/cleaned.Rdata')
 
-# DONE 
-# figure out how to render with state x collector combo - create combined variable?
-
+# Setup - State/Year Combos ----
+# function to set up df to render diff prov/year combos 
 renderAnything <- function(stProv, yr2make, repFor, subFold){
  load('Robinson/Data/cleanedV3.Rdata') # or load('Data/cleaned.Rdata')
   
@@ -31,71 +30,70 @@ renderAnything <- function(stProv, yr2make, repFor, subFold){
     )
   }
 
-# 2026 - 2024 WA and BC reports 
+# 2026 - 2024 WA and BC reports ----
 
-datWA <- dat %>% 
+datWA <- dat %>%
   filter(state %in% "WA")
-
-datBC <- dat %>% 
-  filter(state %in% "BC")
+# 
+# datBC <- dat %>% 
+#   filter(state %in% "BC")
 
   # datWA_test <- datWA %>% semi_join(tibble(collector=unique(datWA$collector), names =unique(datWA$collector)) %>% 
 #   dplyr::filter(row_number()%in%c(1,2,3,4,5)))# name options
-
+## WA 2024 ----
 wa24_collected <-
-datWA %>% st_drop_geometry() %>% 
-  group_by(collector, state) %>% 
+datWA %>% st_drop_geometry() %>%
+  group_by(collector, state) %>%
   summarise(n = n_distinct(genSpp, na.rm = T)) %>% ungroup() %>%
-  filter(n>0) %>% 
-  rename(stProv = state, repFor = collector) %>% 
+  filter(n>0) %>%
+  rename(stProv = state, repFor = collector) %>%
    mutate(yr2make = 2024,
-          subFold = "collected") %>% 
+          subFold = "collected") %>%
   select(!n)
-
-wa24_non <- datWA %>% st_drop_geometry() %>% 
+# 
+wa24_non <- datWA %>% st_drop_geometry() %>%
   #filter(!(year %in% 2025)) %>% # avoiding blank reports for 2025 - but then won't have anything?
-  group_by(collector, state) %>% 
-  summarise(n = n_distinct(genSpp, na.rm = T)) %>% ungroup() %>% 
-  filter(n==0) %>% 
-  rename(stProv = state, repFor = collector) %>% 
-  mutate(yr2make = 2024, 
-         subFold = "noCurYear")%>% 
+  group_by(collector, state) %>%
+  summarise(n = n_distinct(genSpp, na.rm = T)) %>% ungroup() %>%
+  filter(n==0) %>%
+  rename(stProv = state, repFor = collector) %>%
+  mutate(yr2make = 2024,
+         subFold = "noCurYear")%>%
   select(!n)
 
 #renderAnything(stProv = "WA", yr2make = 2024, repFor = "Alanna Jacob", subFold = "noCurYear")
 
 # DONE 
-# purrr::pwalk(wa24_collected, renderAnything) # with 2024 collections
-# 
+purrr::pwalk(wa24_collected, renderAnything) # with 2024 collections
+
 # purrr::pwalk(wa24_non, renderAnything) # without 2024 collections
 
 ## BC 2024 ----
 
-bc24_collected <-
-  datBC %>% st_drop_geometry() %>% 
-  group_by(collector, state) %>% 
-  summarise(n = n_distinct(genSpp, na.rm = T)) %>% ungroup() %>%
-  filter(n>0) %>% 
-  rename(stProv = state, repFor = collector) %>% 
-  mutate(yr2make = 2024, 
-         subFold = "collected")%>% 
-  select(!n)
-
-bc24_non <- datBC %>% st_drop_geometry() %>% 
-  #filter(!(year %in% 2025)) %>% # avoiding blank reports for 2025 - but then won't have anything?
-  group_by(collector, state) %>% 
-  summarise(n = n_distinct(genSpp, na.rm = T)) %>% ungroup() %>% 
-  filter(n==0) %>% 
-  rename(stProv = state, repFor = collector) %>% 
-  mutate(yr2make = 2024,
-         subFold = "noCurYear")%>% 
-  select(!n)
-
-purrr::pwalk(bc24_collected %>% 
-               filter(row_number()>13), renderAnything) # with 2024 collections
-
-purrr::pwalk(bc24_non, renderAnything) # without 2024 collections
-
+# bc24_collected <-
+#   datBC %>% st_drop_geometry() %>% 
+#   group_by(collector, state) %>% 
+#   summarise(n = n_distinct(genSpp, na.rm = T)) %>% ungroup() %>%
+#   filter(n>0) %>% 
+#   rename(stProv = state, repFor = collector) %>% 
+#   mutate(yr2make = 2024, 
+#          subFold = "collected")%>% 
+#   select(!n)
+# 
+# bc24_non <- datBC %>% st_drop_geometry() %>% 
+#   #filter(!(year %in% 2025)) %>% # avoiding blank reports for 2025 - but then won't have anything?
+#   group_by(collector, state) %>% 
+#   summarise(n = n_distinct(genSpp, na.rm = T)) %>% ungroup() %>% 
+#   filter(n==0) %>% 
+#   rename(stProv = state, repFor = collector) %>% 
+#   mutate(yr2make = 2024,
+#          subFold = "noCurYear")%>% 
+#   select(!n)
+# 
+# purrr::pwalk(bc24_collected %>% 
+#                filter(row_number()>13), renderAnything) # with 2024 collections
+# 
+# purrr::pwalk(bc24_non, renderAnything) # without 2024 collections
 
 # OLDER version
 # make named list of parameters for r markdown params - this will need to make sure there's more than one observation possible
@@ -109,17 +107,18 @@ purrr::pwalk(bc24_non, renderAnything) # without 2024 collections
 #DONE(?)
 # get figures working (depending on how render works) that depend on different state shapefiles etc.
 
-# Test render reports -----------------------------------------------------
-dat %>% group_by(state) %>% count()
-top4testing <- dat %>%
-  filter(state=="ID") %>%
-  filter(!is.na(genSpp)) %>% 
-  group_by(collector, year) %>%
-  count() %>%
-  arrange(desc(n)) %>%
-  st_drop_geometry() %>%
-  head(n = 15) %>%
-  dplyr::select(!n)
+# Testing Reports -----------------------------------------------------
+dat %>% st_drop_geometry() %>% group_by(state) %>% count()
+
+# top4testing <- dat %>%
+#   filter(state=="ID") %>%
+#   filter(!is.na(genSpp)) %>% 
+#   group_by(collector, year) %>%
+#   count() %>%
+#   arrange(desc(n)) %>%
+#   st_drop_geometry() %>%
+#   head(n = 15) %>%
+#   dplyr::select(!n)
 # 
 # stateTests <- dat %>%
 #   semi_join(top4testing) %>%
@@ -134,7 +133,9 @@ top4testing <- dat %>%
 # lr <- dat %>% filter(collector %in% "Lisa Robinson") %>%
 #   filter(!is.na(genSpp))
 
-load('Robinson/Data/cleanedV3.Rdata') # or load('Data/cleaned.Rdata')
+## Individual Report Testing ----
+
+# load('Robinson/Data/cleanedV3.Rdata') # or load('Data/cleaned.Rdata')
 
   # rmarkdown::render(
   #   input = "Robinson/templateSheetV3_TESTING.Rmd",
@@ -143,141 +144,138 @@ load('Robinson/Data/cleanedV3.Rdata') # or load('Data/cleaned.Rdata')
   #                   state = "BC", 
   #                   year = "2022")
   # )
-load('Robinson/Data/cleanedV3.Rdata') # or load('Data/cleaned.Rdata')
-
-  rmarkdown::render(
-    input = "Robinson/templateSheetV3_TESTING.Rmd",
-    output_file = "testV3_WA.pdf",
-    params = list(collectorName = "Anne Bulger",
-                  state = "WA", 
-                  year = "2025")
-  )
-  
-load('Robinson/Data/cleanedV3.Rdata') # or load('Data/cleaned.Rdata')
-  rmarkdown::render(
-    input = "Robinson/templateSheetV3_TESTING.Rmd",
-    output_file = "testV3_BC.pdf",
-    params = list(collectorName = "Bonnie Zand",
-                  state = "BC", 
-                  year = "2024")
-  )
-
-load('Robinson/Data/cleanedV3.Rdata') # or load('Data/cleaned.Rdata')
-# dat is being overwritten in rmd and here
-  rmarkdown::render(
-    input = "Robinson/templateSheetV3_TESTING.Rmd",
-    output_file = "testV3_OR.pdf",
-    params = list(collectorName = "Lisa Robinson",
-                  state = "OR", 
-                  year = "2023")
-  )
-  
-# List volunteers for making all reports ---- 
-
-volNames <- tibble(names=unique(dat$collector)) # name options
-
-# make named list of parameters for r markdown params - this will need to make sure there's more than one observation possible
-reports <- tibble( 
-  collec = tibble(names=unique(dat$collector)),
-  filename = stringr::str_c(str_replace_all(collec$names, " ", "_"), "Summary.pdf"),
-  params = purrr::map(collec, ~ list(collectorName = .)))
-
-# to run
+# load('Robinson/Data/cleanedV3.Rdata') # or load('Data/cleaned.Rdata')
 # 
-toRun <- reports %>% filter(row_number()%in%1)
+#   rmarkdown::render(
+#     input = "Robinson/templateSheetV3_TESTING.Rmd",
+#     output_file = "testV3_WA.pdf",
+#     params = list(collectorName = "Anne Bulger",
+#                   state = "WA", 
+#                   year = "2025")
+#   )
+  
+# load('Robinson/Data/cleanedV3.Rdata') # or load('Data/cleaned.Rdata')
+#   rmarkdown::render(
+#     input = "Robinson/templateSheetV3_TESTING.Rmd",
+#     output_file = "testV3_BC.pdf",
+#     params = list(collectorName = "Bonnie Zand",
+#                   state = "BC", 
+#                   year = "2024")
+#   )
 
-toRun$params
+# load('Robinson/Data/cleanedV3.Rdata') # or load('Data/cleaned.Rdata')
+# # dat is being overwritten in rmd and here
+#   rmarkdown::render(
+#     input = "Robinson/templateSheetV3_TESTING.Rmd",
+#     output_file = "testV3_OR.pdf",
+#     params = list(collectorName = "Lisa Robinson",
+#                   state = "OR", 
+#                   year = "2023")
+#   )
+  
+# OLD (2023) - Lists of volunteers for making all reports ---- 
 
-# might be faster to do: 
+# volNames <- tibble(names=unique(dat$collector)) # name options
+# 
+# # make named list of parameters for r markdown params - this will need to make sure there's more than one observation possible
+# reports <- tibble( 
+#   collec = tibble(names=unique(dat$collector)),
+#   filename = stringr::str_c(str_replace_all(collec$names, " ", "_"), "Summary.pdf"),
+#   params = purrr::map(collec, ~ list(collectorName = .)))
+# 
+# # to run
+# toRun <- reports %>% filter(row_number()%in%1)
+# 
+# toRun$params
 
 # TODO - do we remove obs without IDs at the start, or produce blank reports?
 
 # finding number of catches in each year
-caughtAll <- dat %>% st_drop_geometry() %>% 
-  filter(!is.na(genus)) %>% filter(!is.na(family)) %>% # do pre filtering here - only bees ided to genus or family
-  filter(samplingProtocol == "aerial net") %>% # only netted bees
-  filter(!is.na(day)) %>% 
-  group_by(collector, year) %>%
-  summarise(n = n()) %>% 
-  pivot_wider(names_from = year, values_from = n, values_fill = 0) %>% 
-  pivot_longer(cols = `2024`:`2017`, values_to = "nCaught", names_to = "year")
-
-# for running 2023 by itself
-caught23 <- caughtAll %>% ungroup() %>% 
-  filter(year%in%2023)
+# caughtAll <- dat %>% st_drop_geometry() %>% 
+#   filter(!is.na(genus)) %>% filter(!is.na(family)) %>% # do pre filtering here - only bees ided to genus or family
+#   filter(samplingProtocol == "aerial net") %>% # only netted bees
+#   filter(!is.na(day)) %>% 
+#   group_by(collector, year) %>%
+#   summarise(n = n()) %>% 
+#   pivot_wider(names_from = year, values_from = n, values_fill = 0) %>% 
+#   pivot_longer(cols = `2024`:`2017`, values_to = "nCaught", names_to = "year")
+# 
+# # for running 2023 by itself
+# caught23 <- caughtAll %>% ungroup() %>% 
+#   filter(year%in%2023)
 
 # make named list of parameters for r markdown params - one for those with observations in 2023, one for those with 0
 
-# None 2023 ---------------------------------------------------------------
+## None 2023 ---------------------------------------------------------------
 
-none2023 <- caught23 %>%
-  filter(nCaught < 1) %>% 
-  dplyr::select(collector)
-
-no23dat <- dat %>% semi_join(none2023) # get subset of dat observers with no 2023 observations
-
-volNamesNo23 <- tibble(names=unique(no23dat$collector)) # name of observers with no 2023 obs. 
-
-# code for confirming reports for observers with vertical separator in collector name are working
-# rpVert <- no23dat %>% filter(str_detect(string = collector, pattern = "\\|")) 
+# none2023 <- caught23 %>%
+#   filter(nCaught < 1) %>% 
+#   dplyr::select(collector)
 # 
-# rpVertRep23 <- tibble( input = "Robinson/templateSheetNewFormat25_no2023.Rmd",
-#                        collec = tibble(names = unique(rpVert$collector)),
-#                        output_file = stringr::str_c("noneReports/", str_replace_all(collec$names, " ", "_"), "_Summary2023.pdf"),
-#                        params = purrr::map(collec$names, ~ list(collectorName = .)))
+# no23dat <- dat %>% semi_join(none2023) # get subset of dat observers with no 2023 observations
 # 
-# # extra step to deal with vertical lines in names
-# rpVertRep23 %>% mutate(output_file = str_replace(output_file, "\\|", "and")) %>% 
-#   dplyr::select(!collec) %>% pwalk(.f = rmarkdown::render)
-
-reportsNo23 <- tibble( input = "Robinson/templateSheetNewFormat25_no2023.Rmd", # this is not updated to V3 yet
-                         collec = tibble(names=unique(no23dat$collector)),
-                         output_file = stringr::str_c("noneReports/", str_replace_all(collec$names, " ", "_"), "_Summary2023.pdf"),
-                         params = purrr::map(collec$names, ~ list(collectorName = .)))
-
-reportsNo23 %>% mutate(output_file = str_replace(output_file, "\\|", "and")) %>% 
-  dplyr::select(!collec) %>% pwalk(.f = rmarkdown::render) # need to create folder when you want to run this for real
+# volNamesNo23 <- tibble(names=unique(no23dat$collector)) # name of observers with no 2023 obs. 
+# 
+# # code for confirming reports for observers with vertical separator in collector name are working
+# # rpVert <- no23dat %>% filter(str_detect(string = collector, pattern = "\\|")) 
+# # 
+# # rpVertRep23 <- tibble( input = "Robinson/templateSheetNewFormat25_no2023.Rmd",
+# #                        collec = tibble(names = unique(rpVert$collector)),
+# #                        output_file = stringr::str_c("noneReports/", str_replace_all(collec$names, " ", "_"), "_Summary2023.pdf"),
+# #                        params = purrr::map(collec$names, ~ list(collectorName = .)))
+# # 
+# # # extra step to deal with vertical lines in names
+# # rpVertRep23 %>% mutate(output_file = str_replace(output_file, "\\|", "and")) %>% 
+# #   dplyr::select(!collec) %>% pwalk(.f = rmarkdown::render)
+# 
+# reportsNo23 <- tibble( input = "Robinson/templateSheetNewFormat25_no2023.Rmd", # this is not updated to V3 yet
+#                          collec = tibble(names=unique(no23dat$collector)),
+#                          output_file = stringr::str_c("noneReports/", str_replace_all(collec$names, " ", "_"), "_Summary2023.pdf"),
+#                          params = purrr::map(collec$names, ~ list(collectorName = .)))
+# 
+# reportsNo23 %>% mutate(output_file = str_replace(output_file, "\\|", "and")) %>% 
+#   dplyr::select(!collec) %>% pwalk(.f = rmarkdown::render) # need to create folder when you want to run this for real
 
 #jsonlite::write_json(reportsNo23$output_file, "Robinson/no2023beefiles.JSON")
-# Some 2023 ---------------------------------------------------------------
+## Some 2023 ---------------------------------------------------------------
 
-some2023 <- caught23 %>%
-  filter(nCaught >= 1) %>% 
-  dplyr::select(collector)
+# some2023 <- caught23 %>%
+#   filter(nCaught >= 1) %>% 
+#   dplyr::select(collector)
+# 
+# # quick check that all reports are included in filters
+# done <- some2023 %>% rbind(none2023)
+# caught23 %>% anti_join(done)
+# 
+# # check for reports that somehow don't match either - 
+# # only Andony - obs, but none ided to species in 2023 is the problem, for now just ran manually below
+# 
+# rmarkdown::render(
+#   input = "Robinson/templateSheetNewFormat25_no2023.Rmd",
+#   output_file = "Andony_Melathopoulos_Report_2023.pdf",
+#   params = list(collectorName = "Andony Melathopoulos")
+# )
 
-# quick check that all reports are included in filters
-done <- some2023 %>% rbind(none2023)
-caught23 %>% anti_join(done)
-
-# check for reports that somehow don't match either - 
-# only Andony - obs, but none ided to species in 2023 is the problem, for now just ran manually below
-
-rmarkdown::render(
-  input = "Robinson/templateSheetNewFormat25_no2023.Rmd",
-  output_file = "Andony_Melathopoulos_Report_2023.pdf",
-  params = list(collectorName = "Andony Melathopoulos")
-)
-
-some23dat <- dat %>% semi_join(some2023) # some 23 obs 
-volNamesSome23 <- tibble(names=unique(some23dat$collector)) # name options some 23
-
-reportsSome23 <- tibble( input = "Robinson/templateSheetV3_TESTING.Rmd",
-  collec = tibble(names=unique(some23dat$collector)),
-  output_file = stringr::str_c(str_replace_all(collec$names, " ", "_"), "_Summary2023.pdf"),
-  params = purrr::map(collec$names, ~ list(collectorName = .,
-                                           state = "OR", # might be a way to get collec$names to be a combo variable, then have a fxn separating it wider etc.
-                                           year = "2023")))
-
-reportsSome23[4,] %>% dplyr::select(!collec) %>% pwalk(.f = rmarkdown::render)
+# some23dat <- dat %>% semi_join(some2023) # some 23 obs 
+# volNamesSome23 <- tibble(names=unique(some23dat$collector)) # name options some 23
+# 
+# reportsSome23 <- tibble( input = "Robinson/templateSheetV3_TESTING.Rmd",
+#   collec = tibble(names=unique(some23dat$collector)),
+#   output_file = stringr::str_c(str_replace_all(collec$names, " ", "_"), "_Summary2023.pdf"),
+#   params = purrr::map(collec$names, ~ list(collectorName = .,
+#                                            state = "OR", # might be a way to get collec$names to be a combo variable, then have a fxn separating it wider etc.
+#                                            year = "2023")))
+# 
+# reportsSome23[4,] %>% dplyr::select(!collec) %>% pwalk(.f = rmarkdown::render)
 
 #jsonlite::write_json(reportsSome23$output_file, "Robinson/some2023beefiles.JSON")
 
-# STATE SUMMARIES RMD ----
+# Render State Summaries ----
 
 load('Robinson/Data/cleanedV3.Rdata') # or original: load('Data/cleaned.Rdata')
 
 rmarkdown::render(
-  input = "Robinson/templateSheet_state.Rmd",
+  input = "Robinson/templateSheet_state_final.Rmd",
   output_file = "test_stateOutput.pdf",
   params = list(state = "OR")
 )
