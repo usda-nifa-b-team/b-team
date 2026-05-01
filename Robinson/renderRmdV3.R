@@ -64,7 +64,7 @@ wa24_non <- datWA %>% st_drop_geometry() %>%
 #renderAnything(stProv = "WA", yr2make = 2024, repFor = "Alanna Jacob", subFold = "noCurYear")
 
 # DONE 
-purrr::pwalk(wa24_collected, renderAnything) # with 2024 collections
+# purrr::pwalk(wa24_collected, renderAnything) # with 2024 collections
 
 # purrr::pwalk(wa24_non, renderAnything) # without 2024 collections
 
@@ -276,7 +276,7 @@ load('Robinson/Data/cleanedV3.Rdata') # or original: load('Data/cleaned.Rdata')
 
 rmarkdown::render(
   input = "Robinson/templateSheet_state_final.Rmd",
-  output_file = "test_stateOutput.pdf",
+  output_file = "maybeFinal_stateOutput.pdf",
   params = list(state = "OR")
 )
 
