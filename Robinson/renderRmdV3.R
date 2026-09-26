@@ -274,14 +274,29 @@ dat %>% st_drop_geometry() %>% group_by(state) %>% count()
 
 load('Robinson/Data/cleanedV3.Rdata') # or original: load('Data/cleaned.Rdata')
 
+# rmarkdown::render(
+#   input = "Robinson/templateSheet_state_final.Rmd",
+#   output_file = "stateOutput_OR.pdf",
+#   params = list(state = "OR")
+# )
+
 rmarkdown::render(
-  input = "Robinson/templateSheet_state_final.Rmd",
-  output_file = "maybeFinal_stateOutput.pdf",
+  input = "Robinson/templateSheet_state_html.Rmd",
+  output_file = "stateOutput_OR.docx",
   params = list(state = "OR")
 )
 
-dat %>% st_drop_geometry() %>% group_by(family) %>% 
-  count()
+
+rmarkdown::render(
+  input = "Robinson/templateSheet_state_html.Rmd",
+  output_file = "stateOutput_OR.html",
+  params = list(state = "OR")
+)
+
+dat %>% st_drop_geometry() %>% 
+  filter(str_detect(plantGenSpp, "Centaurea")) %>% 
+  group_by(plantGenSpp) %>% count() %>% 
+  mutate(plantGenSpp = str_replace_all(plantGenSpp, " Hyb\\.", " X "))
 
 # Below here - troubleshooting errors -------------------------------------
 # TODO - organize currently removes points out of state - some on coast likely could be included

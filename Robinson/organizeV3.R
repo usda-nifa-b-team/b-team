@@ -232,6 +232,26 @@ dat1 <-
          uniqueID
          )  
 
+dat2 <- read_csv("Robinson/Data/Data_SOTB_2026.csv") %>% 
+  mutate(uniqueID = row_number()) %>% 
+  rename_with(.cols = everything(), .fn = make.names) %>% 
+  dplyr::select(
+    recordedBy, 
+    day, month, year, verbatimEventDate, # date = verbatimEventDate - make own date anyway in next round
+    country, stateProvince, county, locality, # location names 
+    decimalLatitude, decimalLongitude, 
+    contains('plant'), #plant columns
+    contains('Det'), #Volunteer determinations
+    family, genus, specificEpithet, identifiedBy, # actual determinations
+    sex, caste, # new, maybe not needed?
+    samplingProtocol, # new needed to remove trapped records
+    uniqueID
+  )  
+
+#TODO - for State of the bees 2026
+dat1 <- dat2
+
+rm(dat2)
 # round 2 - rename 
 
 dat <-  dat1 %>% 
@@ -308,7 +328,7 @@ dat <- dat %>% #
 
 #Check for entries with varietal or hybrid marks, or with too many species names
 badNames <- dat %>%
-  mutate(nonstandard=str_detect(plantGenSpp,'( x | z )') | #Hybrid marks
+  mutate(nonstandard=str_detect(plantGenSpp,'( x | z | Ã— )') | #Hybrid marks
            str_detect(plantGenSpp,' var\\..*') | #Varietal marks
            str_count(plantGenSpp,' ')>1 #Too many species names
   ) %>%
@@ -318,17 +338,20 @@ badNames <- dat %>%
 if(length(badNames)>0){
   badNamesLoc <- which(dat$plantGenSpp %in% badNames)
   dat <- dat %>%
-    mutate(plantGenSpp=str_replace_all(plantGenSpp,'( x | z | z | × )',' ')) %>% #Strips hybrid "x" marks
+    mutate(plantGenSpp=str_replace_all(plantGenSpp,'( x | z | z | × |  | Ã— )',' Hyb\\.')) %>% #Strips hybrid "x" marks
     mutate(plantGenSpp=str_replace_all(plantGenSpp,'\\svar\\..*','')) %>% #Strips varietal info
     mutate(plantGenSpp=sapply(str_split(plantGenSpp,' '),function(x) ifelse(length(x)==1,x[1],str_c(x[1:2],collapse=' '))))
   #Drops last plant name
   warning('Non-standard plant names found:\n\n',
           paste(badNames,collapse='\n'),'\n\n',
           'Plant names changed to:\n\n',
-          paste(unique(dat$plantGenSpp[badNamesLoc]),collapse='\n')
+          paste(unique(dat$plantGenSpp[badNamesLoc]),collapse='\n') 
   )
   rm(badNames,badNamesLoc)
 }
+
+dat <- dat %>% 
+  mutate(plantGenSpp = str_replace_all(plantGenSpp, "Hyb\\.", "X ")) # make hybrid names actually hybrids
 
 #Insect columns
 

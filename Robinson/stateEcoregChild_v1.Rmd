@@ -37,15 +37,16 @@ singleEcoNoMissing <- singleEco %>%
   st_drop_geometry() %>% 
   filter(!is.na(genSpp)) %>% 
   filter(!is.na(plantGenSpp)) %>% 
-  mutate(monthNum = as.numeric(month))
+  mutate(monthNum = as.numeric(month), 
+         dayNum = as.numeric(day))
 
-splitSeasons <- function(df, earlyMid = 4, midLate = 7, seas = num1to3){
-  if(seas %in% 1){
-    dfO <- df %>% filter(monthNum < earlyMid)
-  }else if(seas %in% 2) {
-      dfO <- df %>% filter(between(x = monthNum, left = earlyMid, right = midLate))
-  }else if(seas %in% 3){
-      dfO <- df %>% filter(monthNum > midLate)
+splitSeasons <- function(df, seas = num1to3){
+  if(seas %in% 1){ # SPRING - winter currently excluded
+    dfO <- df %>% filter(between(monthNum, left = 4, right = 5)|(monthNum %in% 3 & dayNum>20)|(monthNum %in% 6 & dayNum<21) )
+  }else if(seas %in% 2) { # SUMMER
+      dfO <- df %>% filter(between(x = monthNum, left = 7, right = 8)|(monthNum %in% 6 & dayNum>20)|monthNum %in% 9 & dayNum < 23)
+  }else if(seas %in% 3){ # FALL
+      dfO <- df %>% filter(between(monthNum, 10, 11)|(monthNum %in% 9 & dayNum > 22)|(monthNum %in% 12 & dayNum < 22))
     }else print("Not a recognized season, options are 1, 2, 3")
   return(dfO)
 }
@@ -117,7 +118,7 @@ ecor2highlight <- stateChao_ecoreg %>% filter(name %in% x) %>%
   mutate(gap = as.character(round(Estimator - Observed), 0))
 
 # make figure caption
-fCap <- str_c("Number of detected bee species highlighted for the ", x, " Ecoregion.")
+fCap <- str_c("Choropleth of documented bee species richness for level III ecoregions in ", stateName, " with the ", x, " ecoregion outlined. Dots on the map represent the locations of all sampling localities within the ", x, " ecoregion.")
 ```
 
 
@@ -140,7 +141,8 @@ ecoSppPlot <- actualStateRich(stateChao_ecoreg)+
   geom_sf(data = ecor2highlight, colour = "green", alpha = 0, size = 1)+
     labs(x = "", y = "")+
   geom_sf(data = datEcoR %>% filter(name %in% x), size = 0.75)+
-  geom_sf_text(data = ecor2highlight, aes(label = Observed), size = 4, color = "yellow")
+  geom_sf_text(data = ecor2highlight, aes(label = Observed), size = 4, color = "yellow")+
+  labs(fill = "Documented \n   Species")
 
 cowplot::plot_grid(ecoSppPlot)
 
@@ -169,17 +171,18 @@ cowplot::plot_grid(ecoSppPlot)
 
 
 ```{r, include=FALSE}
-tCap <- str_c("Top plant species/genera for bee richness in the ", x, " Ecoregion.") 
+tCap <- str_c("Top sampled plants for documented bee richness in the ", x, " ecoregion.") 
 ```
 
-\subsection {Top Plant Genera For Bee Richness}
+\subsection{Top Plants For Bee Richness}
 
-```{r, echo=FALSE, fig.cap= tCap}
+
+```{r, echo=FALSE, fig.cap= tCap, fig.width=6.5, fig.height= 5.5}
 
 tpgen <- slice_head(singleEcoPerPlnt %>% arrange(desc(nBeeSpp)) %>%ungroup() %>% select(!c(name, beeSpp)) %>% 
-            rename(`Plant Species` = plantGenSpp, Origin = orig1, `Number Bee Visits Observed` = nBees,`Bee Species` = nBeeSpp), n = 10)
+            rename(`Plant Species` = plantGenSpp, Origin = orig1, `Documented Bee Visits` = nBees,`Bee Species` = nBeeSpp), n = 10)
 
-ggplot(tpgen %>% rename(`Bee Species Observed` = `Bee Species`) %>% pivot_longer(cols = contains("Bee"), names_to = "Number", values_to = "val"), aes(x = `Plant Species`, y = `val`, fill = Origin))+
+ggplot(tpgen %>% rename(`Bee Species Documented` = `Bee Species`) %>% pivot_longer(cols = contains("Bee"), names_to = "Number", values_to = "val"), aes(x = `Plant Species`, y = `val`, fill = Origin))+
   geom_col()+
   facet_wrap(~Number, scales = "free_x")+
   coord_flip()+
@@ -189,36 +192,39 @@ ggplot(tpgen %>% rename(`Bee Species Observed` = `Bee Species`) %>% pivot_longer
   labs(y = "Number")
 
 ```
+
+
 \newpage
 
-\subsection {Top plant genera for bee richness, split by season}
+\subsection {Top plants for bee richness, split by season}
 
 ```{r, include=FALSE}
 
 tpgen1 <- slice_head(singleEcoPerPlnt1 %>% arrange(desc(nBeeSpp)) %>%ungroup() %>% select(!c(name, beeSpp)) %>% 
             rename(`Plant Species` = plantGenSpp, Origin = orig1, `Number Bee Visits Observed` = nBees,`Bee Species` = nBeeSpp) %>% 
-  mutate(seas = "Jan - March"), n = 10)
+  mutate(seas = "Spring"), n = 10)
 
 tpgen2 <- slice_head(singleEcoPerPlnt2 %>% arrange(desc(nBeeSpp)) %>%ungroup() %>% select(!c(name, beeSpp)) %>% 
             rename(`Plant Species` = plantGenSpp, Origin = orig1, `Number Bee Visits Observed` = nBees,`Bee Species` = nBeeSpp) %>% 
-              mutate(seas = "April - June"),  n = 10)
+              mutate(seas = "Summer"),  n = 10)
   
 tpgen3 <- slice_head(singleEcoPerPlnt3 %>% arrange(desc(nBeeSpp)) %>%ungroup() %>% select(!c(name, beeSpp)) %>% 
             rename(`Plant Species` = plantGenSpp, Origin = orig1, `Number Bee Visits Observed` = nBees,`Bee Species` = nBeeSpp) %>% 
-              mutate(seas = "July - October"),  n = 10)
+              mutate(seas = "Fall"),  n = 10)
 
 tpgenSeas <- rbind(tpgen1, tpgen2, tpgen3) %>% mutate(`Number Bee Visits Observed` = as.integer(`Number Bee Visits Observed`), `Bee Species` = as.integer(`Bee Species`))
 ```
 
-```{r, fig.height=6.5, fig.width = 10, fig.cap = str_c("Plant species that support the most bee species by season in the ", x, " Ecoregion.") }
-ggplot(tpgenSeas %>% rename(`Bee Spp. Detected` = `Bee Species`, `No. Bee Visits` = `Number Bee Visits Observed`) %>% pivot_longer(cols = contains("Bee"), names_to = "Number", values_to = "val") %>% 
-         mutate(seas = fct_relevel(as_factor(seas), "Jan - March", "April - June", "July - October")), aes(x = `Plant Species`, y = `val`, fill = Origin))+
+```{r, fig.height=7.5, fig.width = 10, fig.cap = str_c("Top sampled plant species that support the most documented bee species by season in the ", x, " ecoregion. Seasons are defined as spring (Mar 21 - Jun 20), summer (Jun 21 - Sep 22), and fall (Sep 23 - Dec 21).") }
+ggplot(tpgenSeas %>% rename(`Bee Spp. Doc.` = `Bee Species`, `No. Bee Visits` = `Number Bee Visits Observed`) %>% pivot_longer(cols = contains("Bee"), names_to = "Number", values_to = "val") %>% 
+         mutate(seas = fct_relevel(as_factor(seas), "Spring", "Summer", "Fall")), aes(x = `Plant Species`, y = `val`, fill = Origin))+
   geom_col()+
   facet_wrap(~Number*seas, scales = "free")+
   coord_flip()+
   scale_fill_brewer(palette = "Paired")+
   geom_text(aes(label = `val`), position = position_stack(vjust = 0.5))+
-  theme(axis.text.y = element_text(face = "italic"))+ 
+  theme(axis.text.y = element_text(face = "italic"),
+        panel.spacing.y = unit(2, "lines"))+ 
   labs(y = "Number")+
   scale_y_continuous(labels = scales::label_number(accuracy = 1), n.breaks = 5)
 
@@ -247,29 +253,29 @@ ggplot(tpgenSeas %>% rename(`Bee Spp. Detected` = `Bee Species`, `No. Bee Visits
 
 <!-- ``` -->
 \newpage
-\subsection {Most abundant bee species of the `r x` Ecoregion}
+\subsection {Most abundant bee species of the `r x` ecoregion}
 
 ```{r, include=FALSE}
-tcap_topb_1 <- str_c("Most abundant bee species of the ", x, " Ecoregion by season.")
-#tcap_topb_2 <- paste0("Most Abundant Bee Species of the ", x, " Ecoregion during spring (April - June).")
-#tcap_topb_3 <- paste0("Most Abundant Bee Species of the ", x, " Ecoregion during Summer (July - October).")
+tcap_topb_1 <- str_c("Most abundant bee species documented in the ", x, " ecoregion by season. Seasons are defined as spring (Mar 21 - Jun 20), summer (Jun 21 - Sep 22), and fall (Sep 23 - Dec 21).")
+#tcap_topb_2 <- paste0("Most Abundant Bee Species of the ", x, " ecoregion during spring (April - June).")
+#tcap_topb_3 <- paste0("Most Abundant Bee Species of the ", x, " ecoregion during Summer (July - October).")
 ```
 
 ```{r, fig.cap= tcap_topb_1, fig.width= 9.5, fig.height = 4}
 abun1 <- slice_head(ecot1 %>% filter(!str_detect(genSpp, "spp\\.")) %>% group_by(genSpp, family) %>% count() %>% 
                    ungroup() %>% arrange(desc(n)) %>% rename(Species = genSpp, Observations = n) %>% 
-                     mutate(seas = "Jan - March"), n = 10)
+                     mutate(seas = "Spring"), n = 10)
 
 abun2 <- slice_head(ecot2 %>% filter(!str_detect(genSpp, "spp\\.")) %>% group_by(genSpp, family) %>% count() %>% 
                    ungroup() %>% arrange(desc(n)) %>% rename(Species = genSpp, Observations = n) %>% 
-                     mutate(seas = "April - June"), n = 10) 
+                     mutate(seas = "Summer"), n = 10) 
 
 abun3 <- slice_head(ecot3 %>% filter(!str_detect(genSpp, "spp\\.")) %>% group_by(genSpp, family) %>% count() %>% 
                    ungroup() %>% arrange(desc(n)) %>% rename(Species = genSpp, Observations = n) %>% 
-                     mutate(seas = "July - October"),          n = 10)
+                     mutate(seas = "Fall"),          n = 10)
 
 abunAll <- rbind(abun1, abun2, abun3) %>% 
-  mutate(seas = fct_relevel(as_factor(seas), "Jan - March", "April - June", "July - October"))
+  mutate(seas = fct_relevel(as_factor(seas), "Spring", "Summer", "Fall"))
 
 famColSimple_df <- tibble(cols=c(brewer.pal(5,'Set1'), "black"), 
                   family = c('Andrenidae','Apidae','Colletidae',
@@ -306,9 +312,9 @@ ggplot(abunAll, aes(x = Species, y = Observations, fill = family ))+
 <!--                  n = 10) ) -->
 <!-- ``` -->
 
-\subsection {Uncommon Bee Species for the `r x` Ecoregion}
+\subsection {Uncommon Bee Species for the `r x` ecoregion}
 ```{r, include=FALSE}
-tcap_unc <- paste0("Bees with less than 15 project-wide observations, and less than 10 in the ",  x, " Ecoregion.")
+tcap_unc <- paste0("Bees with fewer than 15 ", stateName, " Bee Atlas observations, and fewer than 10 in the ",  x, " ecoregion.")
 ```
 
 
@@ -329,16 +335,16 @@ uncft <- flextable(singleEcoNoMissing %>%
 # uncft <- width(uncft, width = uncftwids)
 uncft
 ```
-\subsection {Known specialist bee species present in the `r x` Ecoregion}
+\subsection {Known specialist bee species present in the `r x` ecoregion}
 
-Additional specialist bees are likely present, but this information is not always well known. If females of a bee species tend to only collect pollen from a certain species, genus, or family of plant but are not present on this list, the bee may be a yet to be described specialist.  
-
-```{r, tab.cap= str_c("Specialist bees present in the ", x, " Ecoregion, plus the number of times each species has been observed, and its known floral hosts.")}
+ This list is produced by querying species included in the literature review of specialist bees produced by Fowler and Droege (2020). As this list is derived from historical literature, there are errors both in underestimating and overestimating specialization, and some misapplications of plant names. Many more specialist bees have been documented by the Oregon Bee Atlas, but these are omitted because their floral relations have not yet been recognized in the literature, or were overlooked in the production of our reference list. Empirical analysis of Oregon Bee Atlas bee-plant interaction occurrence records will add many new specialized relationships to this output in future publications.
+ 
+```{r, tab.cap= str_c("Specialist bees present in the ", x, " ecoregion with the number of times each species has been documented and its reported floral host(s).")}
 library(flextable)
 
 specft <- flextable(singleEcoNoMissing %>% group_by(genSpp) %>% count() %>% ungroup() %>%  
          semi_join(specBeesLookup) %>% left_join(specBeesLookup %>% select(genSpp, `Host plant Family Tribe Genera`)) %>% 
-  rename(`Bee Species` = genSpp, Obs. = n, `Floral Hosts (Literature - Fowler, 2026)` = `Host plant Family Tribe Genera` )) 
+  rename(`Bee Species` = genSpp, Obs. = n, `Floral Hosts (Fowler & Droege, 2020)` = `Host plant Family Tribe Genera` )) 
 
 specft  <- autofit(specft)
 auto_wid <- dim(specft)$widths/sum(dim(specft)$widths)

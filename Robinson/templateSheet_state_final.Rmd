@@ -1,11 +1,13 @@
 ---
+title: '`r params$state` Summary Sheet'
+author: "Oregon Bee Atlas"
 output:
   pdf_document:
     keep_tex: false
-params: 
-  state: ""    
-title: "`r params$state` Summary Sheet"
-author: "Oregon Bee Atlas"
+  html_document:
+    df_print: paged
+params:
+  state: ''
 geometry: margin=2cm
 header-includes:
 - \usepackage{booktabs}
@@ -23,7 +25,7 @@ header-includes:
 - \usepackage{xcolor}
 - \pagenumbering{gobble}
 - \AtBeginDocument{\let\maketitle\relax}
-editor_options: 
+editor_options:
   chunk_output_type: console
 ---
 
@@ -163,7 +165,8 @@ addChao2State <- function(df, state2do, varName = county){ # default is county, 
 ```{r setup map plot fxns, include=FALSE}
 actualStateRich <- function(df){
   return(ggplot(df)+
-    geom_sf(aes(fill = Observed))
+    geom_sf(aes(fill = Observed))+
+      labs(fill = "Documented")
     
     )
   #+)
@@ -183,7 +186,7 @@ estStateRich <- function(df){
 gapStateRich <- function(df){
   return(ggplot(df)+
            geom_sf(aes(fill = (Estimator-Observed)))+
-    labs(fill = "Est. - Obs.")
+    labs(fill = "Est. - Doc.")
   )
   #+)
   #geom_shadowtext() # add number actual 
@@ -192,7 +195,7 @@ gapStateRich <- function(df){
 gapStateRich_focus <- function(df){
   return(ggplot(df)+
            geom_sf(aes(fill = (Estimator-Observed)), alpha = 0)+
-    labs(fill = "Est. - Obs.")
+    labs(fill = "Est. - Doc.")
   ) 
 }
 ```
@@ -388,7 +391,7 @@ gapP_eco <- gapStateRich(stateChao_ecoreg)+
                        mid = '#ffffcc',
                        high = '#984EA3')
 
-fig1_eco <- str_c("Ecoregions of ", stateName, ".", " Top: number bee species detected, Middle: estimated bee species present, Bottom: estimated - detected species (in other words, how many more species do we expect to find with increased sampling effort).")
+fig1_eco <- str_c("Bee species richness of level III ecoregions in ", stateName, ".", " Top: number bee species documented, Middle: estimated bee species present based on curated specimens, Bottom: the difference between estimated and documented bee species richness.")
 
 allP_eco <- cowplot::plot_grid(actP_eco, estP_eco, gapP_eco, nrow = 3)
 ```
@@ -403,14 +406,14 @@ allP_eco
 
 ## Analysis caveats
 
-```{r famID plot, fig.width=7, fig.height= 5, fig.cap= "Proportion of each bee family identified to species, by year."}
+```{r famID plot, fig.width=7, fig.height= 5, fig.cap= "Proportion of specimens identified to species within each bee family by collection year."}
 
 famIdByYr
 
 ```
 
 
-```{r genID plot, fig.width=7, fig.height= 7, fig.cap= "Proportion of each bee genus identified to species."}
+```{r genID plot, fig.width=7, fig.height= 7, fig.cap= "Proportion of bee specimens identified to species within each bee family, by genus."}
 genusIdedPlot
 ```
 
@@ -420,7 +423,7 @@ genusIdedPlot
 
 \newpage
 \section{State Taxa List}
-```{r, tab.cap= "State Taxa List"}
+```{r, tab.cap=  str_c(stateName, " Bee Atlas Taxa List.")}
 sppList <- datSt %>% st_drop_geometry() %>% filter(!is.na(genSpp)) %>% group_by(genSpp) %>% count() %>%
   ungroup() %>% mutate(rowN = row_number())
 
@@ -440,7 +443,7 @@ mainPgs <- sppList %>%
   filter(rowN>66) %>%   
   mutate(seq = ((row_number()-1) %% 70)+1) %>% 
   arrange(rowN)
-  # half <- nrow(sppList)/2
+   half <- nrow(sppList)/2
 # 
 # sppList %>% 
 #   mutate(rowover2 = rowN/2, 
@@ -482,6 +485,7 @@ widStTaxa[2] <- 0.95
 widStTaxa[3] <- 0.15
 widStTaxa[4] <- 2.1
 widStTaxa[5] <- 0.95
+
 ftStateTaxa %>% 
   italic(j = c(1,4)) %>% 
   fontsize(size = 9.5, part = "all") %>% 
@@ -494,7 +498,7 @@ ftStateTaxa %>%
   vline(j = 3, border = fp_border(color = "lightgrey", width = 0.75), part = "body") %>%
   vline_left(border = fp_border(color = "lightgrey", width = 0.75), part = "body") %>% 
   vline( j = 5, border = fp_border(color = "lightgrey", width = 0.75), part = "body") %>% 
-  hline(i = half , j = c(1,2, 4,5), border = fp_border(color = "lightgrey", width = 0.75)) %>% 
+  #hline(i = half , j = c(1,2, 4,5), border = fp_border(color = "lightgrey", width = 0.75)) %>% 
     align(j = 2, part = "all", align = "center") %>%
   align(j = 5, part = "all", align = "center")
   
@@ -509,7 +513,7 @@ ftStateTaxa %>%
 \newpage
 \section {State Ecoregions - Summary}
 
-```{r, tab.cap= "Summary of bee collections by ecoregion"}
+```{r, tab.cap= "Summary of bee species, plant hosts, specimen volume, and unique collectors by ecoregion."}
 ecoRegArea <- datEcoR %>%   
   st_drop_geometry() %>% 
   group_by(NA_L3NAME) %>% 
@@ -530,7 +534,7 @@ erft %>%
 
 ```
 
-```{r, fig.height= 4, fig.width= 8, fig.cap= str_c("Observed and estimated species richness for Ecoregions in ", stateName, ". Bars show the number of species currently observed, blue points with associated error bars show estimated species species richness and a 95% confidence interval in the estimate.") }
+```{r, fig.height= 4, fig.width= 8, fig.cap= str_c("Bar chart of documented species richness for level III ecoregions in ", stateName, " and estimates of species richness with a 95% confidence interval.") }
 
 stateChao_ecoreg %>% st_drop_geometry() %>% 
   ggplot(aes(x = name, y = Observed))+
@@ -574,7 +578,7 @@ cat(unlist(res), sep = "\n")
 \newpage
 \section {State Counties - Summary}
 
-```{r actFig, fig.cap= "Actual observed bee species richness.", include=FALSE}
+```{r actFig, fig.cap= "Actual documented bee species richness.", include=FALSE}
 actP <- actualStateRich(stateChao)+
   scale_fill_gradient2(low = "white", 
                        mid = '#f1eef6',
@@ -595,7 +599,7 @@ gapP <- gapStateRich(stateChao)+
                        mid = '#ffffcc',
                        high = '#984EA3')
 
-figCounty <- str_c("Counties of ", stateName,".", " Top: number bee species detected, Middle: estimated bee species present, Bottom: estimated - detected species (in other words, how many more species do we expect to find with increased sampling effort).")
+figCounty <- str_c("Chloropleth of bee species richnnes in", stateName, "counties. Top: number bee species documented, Middle: estimated bee species present based on curated specimens, Bottom: the difference between estimated and documented bee species richness.")
 
 allP <- cowplot::plot_grid(actP, estP, gapP, nrow = 3)
 ```
@@ -606,7 +610,7 @@ allP
 ```
 
 ```{r, include=FALSE}
-cSumCap <- paste0("Bee collection summaries by county of ", stateName, ".")
+cSumCap <- paste0("Summary of bee species, plant hosts, specimen volume, and unique collectors by ", stateName, " county.")
 ```
 
 ```{r, tab.cap= cSumCap  }
