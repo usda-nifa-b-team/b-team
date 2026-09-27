@@ -9,20 +9,27 @@ library(raster)
 
 # TODO 
 # figure out mapping - addRasterImage - how to change palette etc. 
+# TODO 
 # define minimum occurrences and set message if deduplicated occurrences fall below threshold - currently just filtering
+# solution - minimum of 20 occurrences
+
+# TODO
 # figure out what resolution of bioclim data actually is (to accomplish above threshold)
-# set up spatial filters etc. - need to understand what the masking etc. is trying to do - should be done properly now 
- # part of this is deduplicating and setting extent based on actual observations - may need state etc. shapefiles
-# Linc ideas about improving maxent for bees? - summer climate? 
 # use 30s bioclim data instead of 2.5 min - crop to only west NA? 
 
-# Save maxent tiles so you don't need to reload them each time in knit
+# DONE 
+# set up spatial filters etc. - need to understand what the masking etc. is trying to do - should be done properly now 
+# part of this is deduplicating and setting extent based on actual observations - may need state etc. shapefiles
+# Linc ideas about improving maxent for bees? - summer climate? 
 # make bombus output shareable with rmd
+# get basic wallace function working to quickly do a species model 
+
+
+# Save maxent tiles so you don't need to reload them each time in knit
+
 # figure out how to include them - list of leaflet maps to output  
 
 
-# done 
-# get basic wallace function working to quickly do a species model 
 
 # this is probably not necessary, was for original fxn working but seems to work now
 penvs_bgMask_RRMOD <- function (occs, envs, bgExt, logger = NULL, spN = NULL) 
@@ -51,11 +58,11 @@ penvs_bgMask_RRMOD <- function (occs, envs, bgExt, logger = NULL, spN = NULL)
 
 source("scripts/maxEnt_Fxn.R")
 
-usStates %>% 
-  filter(STUSPS == "OR") %>%
-  st_concave_hull(ratio = 0.2,  allow_holes = FALSE) %>% 
-  ggplot()+geom_sf()+
-  geom_sf(data = usStates %>% filter(STUSPS == "OR"), colour= "red")
+# usStates %>% 
+#   filter(STUSPS == "OR") %>%
+#   st_concave_hull(ratio = 0.2,  allow_holes = FALSE) %>% 
+#   ggplot()+geom_sf()+
+#   geom_sf(data = usStates %>% filter(STUSPS == "OR"), colour= "red")
 
 # getting data ----
  load("Robinson/Data/cleanedV3.Rdata")
@@ -130,7 +137,7 @@ includePointsBox <- matrix(c(-124.551, -124.551 , -120, -120, 47, 41, 41, 47.183
 sfAB <- occs_Ab %>% 
   st_as_sf(coords = c("longitude", "latitude"), crs = 4326)
 
-st_convex_hull(sfAB)
+# st_convex_hull(sfAB)
 
 bounds <- includePointsBox %>%  
   as.data.frame() %>% 
